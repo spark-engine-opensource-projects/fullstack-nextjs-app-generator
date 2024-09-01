@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "skipLibCheck": true,  // Skip type checking of declaration files
+    "checkJs": false       // Disable type checking for JavaScript files
+  }
+}

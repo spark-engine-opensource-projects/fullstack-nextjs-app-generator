@@ -1,0 +1,22 @@
+{
+    "projectIDs": {
+        "generateSinglePagePlan": "7c3b6d38-27fc-4379-acbf-b6094281e34f",
+        "generateMultiplePagePlan": "a04442d8-9a6b-4f20-aa3a-61dd32fe193a",
+        "generateStylingPlan": "fed28ad9-7cc4-45a3-88ea-aebd8ee6e2fe",
+        "generateApiPlan": "c4013107-5c9c-4562-9a41-3d775d772abe",
+        "generateSchema": "06981a2e-2b6f-4c7e-9028-95826c8b8d62",
+        "generateDynamicallyRenderingReactComponent": "52289de2-d82e-48b6-a3bf-56fd38f3111a",
+        "generateDynamicallyRenderingReactComponentWithStyledComponents": "4ffd4cd2-9144-48bf-b021-39d210c91226",
+        "generateDynamicallyRenderingReactComponentWithChakra": "931675f9-f1f3-4052-938c-4441881d7f06",
+        "generateDynamicallyRenderingReactComponentWithMui": "be51ca8e-35a0-45af-9666-31212bf0dd6d",
+        "generateNormalReactComponent": "",
+        "generateVercelServerlessAPI": "03494919-d0c9-465a-a532-3978e79f4429",
+        "generateSQLExecutionCode": "ebe9f9b3-8e05-4beb-9525-f55b532ee248",
+        "generateNormalReactPage": "c18b41c5-973c-4247-9186-82872ff4c63d",
+        "modifySinglePagePlan": "",
+        "modifyMultiplePagePlan": "",
+        "modifyApiPlan": "",
+        "modifySchema": "e2cdc59f-85c3-4188-acbf-dd90f4578518",
+        "modifyReactComponent": ""
+    }
+}
