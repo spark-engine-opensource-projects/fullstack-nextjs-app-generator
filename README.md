@@ -30,7 +30,7 @@ To set up the project, follow these steps:
 1. **Clone the Repository:**
 
     ```bash
-    git clone https://github.com/spark-engine-opensource-projects/Fullstack-NextJs-WebApp-Generator-.git
+    git clone https://github.com/spark-engine-opensource-projects/Fullstack-NextJs-WebApp-Generator.git
     cd Fullstack-NextJs-WebApp-Generator-
     ```
 
@@ -103,18 +103,18 @@ Ensure these variables are set in  Vercel for the application to function correc
 1. Cloning the Backend Deployment Server
 If you want to automatically deploy your projects to Vercel and manage databases with Supabase, you will need to clone and set up the backend deployment server. Follow these steps:
 
-Clone the Backend Deployment Server Repository:
-1. 
+-Clone the Backend Deployment Server Repository:
+ 
 ```bash
 git clone https://github.com/spark-engine-opensource-projects/Automated-NextJS-deployer-to-vercel-and-supabase.git
 cd Automated-NextJS-deployer-to-vercel-and-supabase
 ```
 
-2. Set Up and Start the Server:
+- Set Up and Start the Server:
 
 Follow the instructions in the backend server's README to install dependencies, set environment variables, and start the server.
 
-Update the NGROK_DEPLOYER_URL:
+-Update the NGROK_DEPLOYER_URL:
 
 Once the backend server is running and ngrok is tunneling, update the NGROK_DEPLOYER_URL in your Next.js Builder vercel configuration with the URL provided by ngrok.
 
