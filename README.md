@@ -30,8 +30,8 @@ To set up the project, follow these steps:
 1. **Clone the Repository:**
 
     ```bash
-    git clone https://github.com/yourusername/nextjs-builder.git
-    cd nextjs-builder
+    git clone https://github.com/spark-engine-opensource-projects/Fullstack-NextJs-WebApp-Generator-.git
+    cd Fullstack-NextJs-WebApp-Generator-
     ```
 
 2. **Install Dependencies:**
@@ -42,16 +42,7 @@ To set up the project, follow these steps:
     yarn install
     ```
 
-3. **Set Up Environment Variables:**
-
-    Create a `.env.local` file in the root directory and configure the following environment variables:
-
-    ```bash
-    SPARK_API_KEY=your-spark-api-key
-    NGROK_DEPLOYER_URL=your-ngrok-deployer-url
-    ```
-
-4. **Deploy the Application to Vercel:**
+3. **Deploy the Application to Vercel:**
 
     **Note:** The Next.js Builder application must be deployed on Vercel to function correctly. Follow these steps to deploy it:
 
@@ -70,19 +61,16 @@ To set up the project, follow these steps:
       vercel --prod
       ```
 
-    After deployment, make sure to update the `NGROK_DEPLOYER_URL` in your `.env.local` file with the URL provided by ngrok (as described in the [Important Notes](#important-notes) section below).
+    After deployment, make sure to update the `NGROK_DEPLOYER_URL` in your vercel configuration with the URL provided by ngrok (as described in the [Important Notes](#important-notes) section below).
 
-5. **Run the Development Server (Optional):**
+4. **Set Up Environment Variables:**
 
-    If you want to run the application locally for development:
-    
+    Go to your created project in vercel and configure the following environment variables:
+
     ```bash
-    npm run dev
-    # or
-    yarn dev
+    SPARK_API_KEY=your-spark-api-key
+    NGROK_DEPLOYER_URL=your-ngrok-deployer-url
     ```
-
-    The application will be accessible at [http://localhost:3000](http://localhost:3000).
 
 ## Usage
 
@@ -104,13 +92,7 @@ Once your project is ready, you can deploy it directly using the integrated depl
 -SPARK_API_KEY: Your Spark API key for code generation.
 -NGROK_DEPLOYER_URL: The URL of the deployment server managed via ngrok.
 
-Ensure these variables are set in the .env.local file for the application to function correctly.
-
-### Components Overview
--Dashboard.js: The main interface where users manage project creation, page design, API setup, and database schema management.
--ErrorBoundary.js: Captures errors in the UI and allows users to regenerate components or APIs.
--MultiStepForm.js: Collects initial project information from the user through a multi-step form.
--ProjectDashboard.js: Displays and manages all aspects of the project, including page rendering, code editing, and deployment.
+Ensure these variables are set in  Vercel for the application to function correctly.
 
 ### Deployment Workflow
 1. Create and Customize Your Project: Follow the step-by-step process in the application to create and customize your Next.js project.
@@ -134,7 +116,7 @@ Follow the instructions in the backend server's README to install dependencies, 
 
 Update the NGROK_DEPLOYER_URL:
 
-Once the backend server is running and ngrok is tunneling, update the NGROK_DEPLOYER_URL in your Next.js Builder .env.local file with the URL provided by ngrok.
+Once the backend server is running and ngrok is tunneling, update the NGROK_DEPLOYER_URL in your Next.js Builder vercel configuration with the URL provided by ngrok.
 
 2. Deployment Requirement for Frontend Next.js Builder
 The frontend Next.js Builder application must be deployed to Vercel to function properly. This is because the application relies on Vercel's infrastructure for dynamic API generation and hosting. Follow the deployment instructions provided above to ensure the application is correctly hosted.
