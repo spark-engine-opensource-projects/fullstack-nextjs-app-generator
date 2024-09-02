@@ -1,12 +1,12 @@
 ![GitHub Banner](./public/github-banner.png)
 
-# Next.js Builder
+# Fullstack Next.js Builder
 
-![Spark Engine](https://sparkengine.ai/search)
+![Spark Engine](./public/logo.png)
 
 [![GitHub](https://img.shields.io/badge/GitHub-Open%20Source-blue?logo=github)](https://github.com/spark-engine-opensource-projects)
 [![Discord](https://img.shields.io/badge/Join%20Our%20Community-Discord-blue?logo=discord)](https://discord.gg/VAQA5c32jM)
-[![Spark Engine](./public/logo-github.png)](https://sparkengine.ai/search)
+[![Spark Engine](https://github.com/spark-engine-opensource-projects/Fullstack-NextJs-WebApp-Generator/blob/main/public/github-banner.png)](https://sparkengine.ai/search)
 
 ## Overview
 
