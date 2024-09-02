@@ -1,8 +1,16 @@
+![GitHub Banner](./github-banner.png)
+
 # Next.js Builder
+
+![Spark Engine](https://sparkengine.ai/search)
+
+[![GitHub](https://img.shields.io/badge/GitHub-Open%20Source-blue?logo=github)](https://github.com/spark-engine-opensource-projects)
+[![Discord](https://img.shields.io/badge/Join%20Our%20Community-Discord-blue?logo=discord)](https://discord.gg/VAQA5c32jM)
+[![Spark Engine](./logo-github.png)](https://sparkengine.ai/search)
 
 ## Overview
 
-Next.js Builder is a robust application designed to automate the process of creating and managing web applications built with Next.js. This tool enables users to generate pages, APIs, and database schemas interactively through a multi-step interface. Additionally, it integrates seamlessly with a backend deployment server to automatically deploy projects to Vercel and manage databases using Supabase.
+Next.js Builder is a robust and intuitive application designed to streamline the process of creating and managing web applications built with Next.js. This tool empowers users to generate pages, APIs, and database schemas interactively through a multi-step interface. Additionally, it seamlessly integrates with a backend deployment server to automatically deploy projects to Vercel and manage databases using Supabase.
 
 ## Table of Contents
 
@@ -10,18 +18,19 @@ Next.js Builder is a robust application designed to automate the process of crea
 - [Installation](#installation)
 - [Usage](#usage)
 - [Environment Variables](#environment-variables)
-- [Components Overview](#components-overview)
 - [Deployment Workflow](#deployment-workflow)
-- [License](#license)
 - [Important Notes](#important-notes)
+- [License](#license)
+- [Related Links](#related-links)
 
 ## Prerequisites
 
-Before using this application, ensure that you have the following prerequisites installed and configured:
+Before using this application, ensure you have the following prerequisites installed and configured:
 
 - **Node.js** (v14.x or higher) and npm/yarn.
 - Accounts with [Vercel](https://vercel.com/) and [Supabase](https://supabase.com/).
 - A [ngrok](https://ngrok.com/) account for tunneling (for the deployment server).
+- A **Spark API Key** which you can obtain by signing up at [Spark Engine](https://sparkengine.ai) and navigating to `Account > API Keys`.
 
 ## Installation
 
@@ -31,7 +40,7 @@ To set up the project, follow these steps:
 
     ```bash
     git clone https://github.com/spark-engine-opensource-projects/Fullstack-NextJs-WebApp-Generator.git
-    cd Fullstack-NextJs-WebApp-Generator-
+    cd Fullstack-NextJs-WebApp-Generator
     ```
 
 2. **Install Dependencies:**
@@ -61,11 +70,11 @@ To set up the project, follow these steps:
       vercel --prod
       ```
 
-    After deployment, make sure to update the `NGROK_DEPLOYER_URL` in your vercel configuration with the URL provided by ngrok (as described in the [Important Notes](#important-notes) section below).
+    After deployment, ensure you update the `NGROK_DEPLOYER_URL` in your Vercel configuration with the URL provided by ngrok (as described in the [Important Notes](#important-notes) section below).
 
 4. **Set Up Environment Variables:**
 
-    Go to your created project in vercel and configure the following environment variables:
+    Navigate to your created project in Vercel and configure the following environment variables:
 
     ```bash
     SPARK_API_KEY=your-spark-api-key
@@ -89,37 +98,44 @@ To set up the project, follow these steps:
 Once your project is ready, you can deploy it directly using the integrated deployment server. The server manages the deployment process, integrates with Vercel, and handles environment variables and database setup on Supabase.
 
 ### Environment Variables
--SPARK_API_KEY: Your Spark API key for code generation.
--NGROK_DEPLOYER_URL: The URL of the deployment server managed via ngrok.
 
-Ensure these variables are set in  Vercel for the application to function correctly.
+- **SPARK_API_KEY:** Your Spark API key for code generation.
+- **NGROK_DEPLOYER_URL:** The URL of the deployment server managed via ngrok.
+
+Ensure these variables are set in Vercel for the application to function correctly.
 
 ### Deployment Workflow
-1. Create and Customize Your Project: Follow the step-by-step process in the application to create and customize your Next.js project.
-2. Deploy Using the Backend Server: Once the project is ready, use the /deploy endpoint of the backend server to deploy the project to Vercel and manage the Supabase database. The backend server handles the deployment process, including managing environment variables and executing SQL scripts.
-3. Monitor and Update: Use the application’s dashboard to monitor and update your project as needed, with options to regenerate components and redeploy.
 
-### Important Notes
-1. Cloning the Backend Deployment Server
-If you want to automatically deploy your projects to Vercel and manage databases with Supabase, you will need to clone and set up the backend deployment server. Follow these steps:
+1. **Create and Customize Your Project:** Follow the step-by-step process in the application to create and customize your Next.js project.
+2. **Deploy Using the Backend Server:** Once the project is ready, use the `/deploy` endpoint of the backend server to deploy the project to Vercel and manage the Supabase database. The backend server handles the deployment process, including managing environment variables and executing SQL scripts.
+3. **Monitor and Update:** Use the application’s dashboard to monitor and update your project as needed, with options to regenerate components and redeploy.
 
--Clone the Backend Deployment Server Repository:
- 
-```bash
-git clone https://github.com/spark-engine-opensource-projects/Automated-NextJS-deployer-to-vercel-and-supabase.git
-cd Automated-NextJS-deployer-to-vercel-and-supabase
-```
+## Important Notes
 
-- Set Up and Start the Server:
+1. **Cloning the Backend Deployment Server:**
+   If you want to automatically deploy your projects to Vercel and manage databases with Supabase, you will need to clone and set up the backend deployment server. Follow these steps:
 
-Follow the instructions in the backend server's README to install dependencies, set environment variables, and start the server.
+   - Clone the Backend Deployment Server Repository:
+   
+     ```bash
+     git clone https://github.com/spark-engine-opensource-projects/Automated-NextJS-deployer-to-vercel-and-supabase.git
+     cd Automated-NextJS-deployer-to-vercel-and-supabase
+     ```
 
--Update the NGROK_DEPLOYER_URL:
+   - **Set Up and Start the Server:**
+     Follow the instructions in the backend server's README to install dependencies, set environment variables, and start the server.
 
-Once the backend server is running and ngrok is tunneling, update the NGROK_DEPLOYER_URL in your Next.js Builder vercel configuration with the URL provided by ngrok.
+   - **Update the NGROK_DEPLOYER_URL:**
+     Once the backend server is running and ngrok is tunneling, update the `NGROK_DEPLOYER_URL` in your Next.js Builder Vercel configuration with the URL provided by ngrok.
 
-2. Deployment Requirement for Frontend Next.js Builder
-The frontend Next.js Builder application must be deployed to Vercel to function properly. This is because the application relies on Vercel's infrastructure for dynamic API generation and hosting. Follow the deployment instructions provided above to ensure the application is correctly hosted.
+2. **Deployment Requirement for Frontend Next.js Builder:**
+   The frontend Next.js Builder application must be deployed to Vercel to function properly. This is because the application relies on Vercel's infrastructure for dynamic API generation and hosting. Follow the deployment instructions provided above to ensure the application is correctly hosted.
 
-### License
-This project is licensed under the MIT License. See the LICENSE file for details.
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+
+## Related Links
+
+- **Original GitHub Repository:** [Spark Engine AI](https://github.com/spark-engine-ai)
+- **Explore Spark Engine Projects:** [Spark Engine Projects](https://sparkengine.ai/search)

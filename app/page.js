@@ -28,7 +28,7 @@ export default function Home() {
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
             <header className="w-full flex items-center justify-between p-4 bg-white shadow-md mb-8">
                 <div className="flex items-center">
-                    <img src="/logo.png" w="140px" h="100%" alt="Logo" className="h-8 w-8 mr-2" />
+                    <a href="https://sparkengine.ai"><img src="/logo.png" w="100%" h="50px" alt="Logo" className="h-12 mr-2" /></a>
                 </div>
                 <div className="flex space-x-4">
                     <a href="https://discord.gg/VAQA5c32jM" target="_blank" rel="noopener noreferrer">
@@ -39,7 +39,7 @@ export default function Home() {
                     </a>
                 </div>
             </header>
-            <h1 className="text-sm font-medium text-gray-500">Next.js Application Builder</h1>
+            <h1 className="text-sm font-medium text-gray-500">Fullstack Next.js Application Builder</h1>
             <main className="flex-grow flex items-center justify-center w-full mb-12">
                 <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
                     {!isFormComplete ? (
