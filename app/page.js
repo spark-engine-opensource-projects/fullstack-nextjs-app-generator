@@ -28,7 +28,7 @@ export default function Home() {
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
             <header className="w-full flex items-center justify-between p-4 bg-white shadow-md mb-8">
                 <div className="flex items-center">
-                    <img src="/logo.png" w="100%" alt="Logo" className="h-8 w-8 mr-2" />
+                    <img src="/logo.png" w="140px" h="100%" alt="Logo" className="h-8 w-8 mr-2" />
                 </div>
                 <div className="flex space-x-4">
                     <a href="https://discord.gg/VAQA5c32jM" target="_blank" rel="noopener noreferrer">
