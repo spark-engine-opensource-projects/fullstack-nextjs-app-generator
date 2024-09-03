@@ -2,8 +2,7 @@
 
 # Fullstack Next.js Builder
 
-[![Spark Engine GitHub](https://img.shields.io/badge/GitHub-Spark%Engine-black?logo=github)](https://github.com/spark-engine-ai)
-[![Projects GitHub](https://img.shields.io/badge/GitHub-More%Projects-blue?logo=github)](https://github.com/spark-engine-opensource-projects)
+[![GitHub](https://img.shields.io/badge/GitHub-Open%20Source-blue?logo=github)](https://github.com/spark-engine-opensource-projects)
 [![Discord](https://img.shields.io/badge/Join%20Our%20Community-Discord-blue?logo=discord)](https://discord.gg/VAQA5c32jM)
 
 ## Overview
