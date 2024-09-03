@@ -2,11 +2,8 @@
 
 # Fullstack Next.js Builder
 
-![Spark Engine](./public/logo.png)
-
 [![GitHub](https://img.shields.io/badge/GitHub-Open%20Source-blue?logo=github)](https://github.com/spark-engine-opensource-projects)
 [![Discord](https://img.shields.io/badge/Join%20Our%20Community-Discord-blue?logo=discord)](https://discord.gg/VAQA5c32jM)
-[![Spark Engine](https://github.com/spark-engine-opensource-projects/Fullstack-NextJs-WebApp-Generator/blob/main/public/github-banner.png)](https://sparkengine.ai/search)
 
 ## Overview
 
@@ -139,3 +136,5 @@ This project is licensed under the MIT License. See the [LICENSE](./LICENSE) fil
 
 - **Original GitHub Repository:** [Spark Engine AI](https://github.com/spark-engine-ai)
 - **Explore Spark Engine Projects:** [Spark Engine Projects](https://sparkengine.ai/search)
+
+[![Spark Engine](https://github.com/spark-engine-opensource-projects/Fullstack-NextJs-WebApp-Generator/blob/main/public/logo.png)](https://sparkengine.ai/search)
