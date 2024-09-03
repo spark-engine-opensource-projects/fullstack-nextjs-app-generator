@@ -36,8 +36,8 @@ To set up the project, follow these steps:
 1. **Clone the Repository:**
 
     ```bash
-    git clone https://github.com/spark-engine-opensource-projects/Fullstack-NextJs-WebApp-Generator.git
-    cd Fullstack-NextJs-WebApp-Generator
+    git clone https://github.com/spark-engine-opensource-projects/fullstack-nextjs-app-generator.git
+    cd fullstack-nextjs-app-generator
     ```
 
 2. **Install Dependencies:**
@@ -137,4 +137,4 @@ This project is licensed under the MIT License. See the [LICENSE](./LICENSE) fil
 - **Original GitHub Repository:** [Spark Engine AI](https://github.com/spark-engine-ai)
 - **Explore Spark Engine Projects:** [Spark Engine Projects](https://sparkengine.ai/search)
 
-[![Spark Engine](https://github.com/spark-engine-opensource-projects/Fullstack-NextJs-WebApp-Generator/blob/main/public/logo.png)](https://sparkengine.ai/search)
+[![Spark Engine](https://github.com/spark-engine-opensource-projects/fullstack-nextjs-app-generator/blob/main/public/logo.png)](https://sparkengine.ai/search)
