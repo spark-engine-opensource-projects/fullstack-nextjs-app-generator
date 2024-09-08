@@ -984,7 +984,7 @@ export default function Dashboard({ formData, onSubmit }) {
                         {/* Schema Review */}
                         <div className="mb-8">
                             <h3 className="text-xl font-bold mb-4">Database Schema</h3>
-                            <button onClick={handleOpenPromptDialog} className="btn mb-4">Modify Schema</button>
+                            <button onClick={handleOpenPromptDialog} className="btn mb-4">Modify Schema ✎</button>
                             {apiResult.databaseSchema && (
                                 <div className="relative p-4 bg-gray-100 rounded overflow-hidden" style={{ minHeight: '800px' }}>
                                     <svg className="absolute inset-0 w-full h-full pointer-events-none">
