@@ -363,7 +363,7 @@ export default function ProjectDashboard({ projectData }) {
             <button
                 key={page.name}
                 onClick={() => handlePageChange(page.name)}
-                className={`tab ${selectedPage === page.name ? 'tab-active' : ''} bg-black`}
+                className={`tab ${selectedPage === page.name ? 'tab-active' : ''}`}
             >
                 {page.name}
             </button>

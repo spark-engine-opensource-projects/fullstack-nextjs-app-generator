@@ -266,6 +266,7 @@ export default function Dashboard({ formData, onSubmit }) {
                 {error && (
                     <div className="bg-red-100 border border-red-300 text-red-800 p-4 rounded-lg shadow">
                         <p>{error}</p>
+                        <p>If the problem persists, please go to <a href="https://sparkengine.ai" style={{color:'inherit'}}>Spark Engine</a> to top up your credits for $0.99/week. This AI application requires multiple AI models to run.</p>
                         <button
                             onClick={handleRegenerate}
                             className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all"
@@ -374,7 +375,7 @@ export default function Dashboard({ formData, onSubmit }) {
                                                 document.querySelector(`input[name="newComponent${pageIndex}"]`).value
                                             )
                                         }
-                                        className="bg-black w-24 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                                        className="w-24 text-black px-4 py-2 rounded-lg hover:bg-blue-600 transition"
                                     >
                                         Add +
                                     </button>
@@ -695,7 +696,7 @@ export default function Dashboard({ formData, onSubmit }) {
                                                     document.querySelector(`input[name="newComponent${pageIndex}"]`).value
                                                 )
                                             }
-                                            className="bg-black w-24 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                                            className="w-24 text-black px-4 py-2 rounded-lg hover:bg-blue-600 transition"
                                         >
                                             Add +
                                         </button>
@@ -971,7 +972,7 @@ export default function Dashboard({ formData, onSubmit }) {
                                                     document.querySelector(`input[name="newComponent${pageIndex}"]`).value
                                                 )
                                             }
-                                            className="bg-black w-24 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                                            className="w-24 text-black px-4 py-2 rounded-lg hover:bg-blue-600 transition"
                                         >
                                             Add +
                                         </button>

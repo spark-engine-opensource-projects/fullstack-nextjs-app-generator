@@ -30,7 +30,7 @@
 .btn {
     border: none;
     padding: 10px 20px;
-    background-color: #0070f3;
+    background-color: black;
     color: white;
     cursor: pointer;
     margin-right: 10px;
@@ -38,7 +38,7 @@
 }
 
 .btn:hover {
-    background-color: #005bb5;
+    background-color: #202020;
 }
 
 .dashboard {
