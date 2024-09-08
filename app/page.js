@@ -41,7 +41,6 @@ export default function Home() {
             </header>
             <h1 className="text-sm font-medium text-gray-500">Fullstack Next.js Application Builder</h1>
             <main className="flex-grow flex items-center justify-center w-full mb-12">
-                <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
                     {!isFormComplete ? (
                         <MultiStepForm onComplete={handleFormComplete} />
                     ) : !isDashboardComplete ? (
@@ -51,7 +50,6 @@ export default function Home() {
                             <ProjectDashboard projectData={finalData} />
                         </ErrorBoundary>
                     )}
-                </div>
             </main>
         </div>
     );

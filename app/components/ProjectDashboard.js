@@ -363,7 +363,7 @@ export default function ProjectDashboard({ projectData }) {
             <button
                 key={page.name}
                 onClick={() => handlePageChange(page.name)}
-                className={`tab ${selectedPage === page.name ? 'tab-active' : ''}`}
+                className={`tab ${selectedPage === page.name ? 'tab-active' : ''} bg-black`}
             >
                 {page.name}
             </button>
@@ -538,77 +538,91 @@ export default function ProjectDashboard({ projectData }) {
     };
 
     return (
-        <div className="project-dashboard p-4 bg-gray-100 min-h-screen">
+        <div className="project-dashboard w-full p-4 bg-gray-100 min-h-screen">
             {loading ? (
-                <div className="loading-screen bg-white p-6 rounded shadow-lg">
-                    <h2 className="text-2xl font-bold mb-4">Generating Project Components...</h2>
-                    <div>
-                        <h3 className="font-semibold">Components</h3>
-                        <ul className="list-disc pl-6">
-                            {Object.entries(componentStatus).map(([name, status]) => (
-                                <li key={name}>
-                                    {name}: <span className={`font-semibold ${status === 'success' ? 'text-green-500' : status === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
-                                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div className="mt-4">
-                        <h3 className="font-semibold">APIs</h3>
-                        <ul className="list-disc pl-6">
-                            {Object.entries(apiStatus).map(([name, status]) => (
-                                <li key={name}>
-                                    {name}: <span className={`font-semibold ${status === 'success' ? 'text-green-500' : status === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
-                                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div className="mt-4">
-                        <h3 className="font-semibold">SQL</h3>
-                        <p>Status: <span className={`font-semibold ${sqlStatus === 'success' ? 'text-green-500' : sqlStatus === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
-                            {sqlStatus.charAt(0).toUpperCase() + sqlStatus.slice(1)}
-                        </span></p>
-                    </div>
-                </div>
+    <div className="loading-screen bg-white p-6 rounded shadow-lg">
+    <h2 className="text-2xl font-bold mb-4">Generating Project Components...</h2>
+    <div>
+        <h3 className="font-semibold">Components</h3>
+        <ul className="list-none pl-6">
+            {Object.entries(componentStatus).map(([name, status]) => (
+                <li key={name} className="flex items-center">
+                    {/* Show ☑ for success, otherwise ▣ */}
+                    <span className="text-2xl mr-2">
+                        {status === 'success' ? '☑' : '▣'}
+                    </span>
+                    <span>
+                        {name}: <span className={`font-semibold ${status === 'success' ? 'text-green-500' : status === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </span>
+                    </span>
+                </li>
+            ))}
+        </ul>
+    </div>
+    <div className="mt-4">
+        <h3 className="font-semibold">APIs</h3>
+        <ul className="list-none pl-6">
+            {Object.entries(apiStatus).map(([name, status]) => (
+                <li key={name} className="flex items-center">
+                    {/* Show ☑ for success, otherwise ▣ */}
+                    <span className="text-2xl mr-2">
+                        {status === 'success' ? '☑' : '▣'}
+                    </span>
+                    <span>
+                        {name}: <span className={`font-semibold ${status === 'success' ? 'text-green-500' : status === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </span>
+                    </span>
+                </li>
+            ))}
+        </ul>
+    </div>
+    <div className="mt-4">
+        <h3 className="font-semibold">SQL</h3>
+        <p>
+            Status: <span className={`font-semibold ${sqlStatus === 'success' ? 'text-green-500' : sqlStatus === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
+                {sqlStatus === 'success' ? '☑' : '▣'} {sqlStatus.charAt(0).toUpperCase() + sqlStatus.slice(1)}
+            </span>
+        </p>
+    </div>
+</div>
             ) : (
                 <>
                     <div className="tabs flex space-x-4 mb-4">
                         <button
                             onClick={() => handleTabChange('pages')}
-                            className={`tab py-2 px-4 rounded ${selectedTab === 'pages' ? 'bg-blue-500 text-white' : 'bg-white text-blue-500 border border-blue-500'}`}
+                            className={`tab py-2 px-4 rounded ${selectedTab === 'pages' ? 'bg-black text-white' : 'bg-white text-black border border-black'}`}
                         >
                             Pages
                         </button>
                         <button
                             onClick={() => handleTabChange('apis')}
-                            className={`tab py-2 px-4 rounded ${selectedTab === 'apis' ? 'bg-blue-500 text-white' : 'bg-white text-blue-500 border border-blue-500'}`}
+                            className={`tab py-2 px-4 rounded ${selectedTab === 'apis' ? 'bg-black text-white' : 'bg-white text-black border border-black'}`}
                         >
                             APIs
                         </button>
                         <button
                             onClick={() => handleTabChange('tables')}
-                            className={`tab py-2 px-4 rounded ${selectedTab === 'tables' ? 'bg-blue-500 text-white' : 'bg-white text-blue-500 border border-blue-500'}`}
+                            className={`tab py-2 px-4 rounded ${selectedTab === 'tables' ? 'bg-black text-white' : 'bg-white text-black border border-black'}`}
                         >
                             Tables
                         </button>
                         <button
                             onClick={handleShowFolderStructure}
-                            className="btn py-2 px-4 bg-green-500 text-white rounded"
+                            className="btn py-2 px-4 bg-green-500 text-white rounded bg-black"
                         >
                             Toggle Folder Structure
                         </button>
                         <button
                             onClick={handleRegenerateHeader} // Add the regenerate Header button
-                            className="btn py-2 px-4 bg-orange-500 text-white rounded"
+                            className="btn py-2 px-4 bg-orange-500 text-white rounded bg-black"
                         >
                             Regenerate Header
                         </button>
                         <button
                             onClick={() => setShowRegenerateAllDialog(true)}
-                            className="btn py-2 px-4 bg-purple-500 text-white rounded"
+                            className="btn py-2 px-4 bg-purple-500 text-white rounded bg-black"
                         >
                             Regenerate All Components
                         </button>
@@ -619,16 +633,16 @@ export default function ProjectDashboard({ projectData }) {
                             <div className="page-tabs flex space-x-4 mb-4">
                                 {renderPageTabs()}
                             </div>
-                            <div className="view-mode-buttons flex space-x-4 mb-4">
+                            <div className="view-mode-buttons flex space-x-2 mb-4">
                                 <button
                                     onClick={() => handleViewModeChange('rendered')}
-                                    className={`btn py-2 px-4 rounded ${viewMode === 'rendered' ? 'bg-green-500 text-white' : 'bg-white text-green-500 border border-green-500'}`}
+                                    className={`btn py-2 bg-black px-4 rounded ${viewMode === 'rendered' ? 'bg-green-500 text-white' : 'bg-white text-green-500 border border-green-500'}`}
                                 >
                                     Rendered
                                 </button>
                                 <button
                                     onClick={() => handleViewModeChange('code')}
-                                    className={`btn py-2 px-4 rounded ${viewMode === 'code' ? 'bg-green-500 text-white' : 'bg-white text-green-500 border border-green-500'}`}
+                                    className={`btn py-2 bg-black px-4 rounded ${viewMode === 'code' ? 'bg-green-500 text-white' : 'bg-white text-green-500 border border-green-500'}`}
                                 >
                                     Code
                                 </button>
@@ -645,72 +659,77 @@ export default function ProjectDashboard({ projectData }) {
                             {serverlessApis.length > 0 && (
                                 <div>
                                     <h3 className="text-xl font-bold mb-4">Vercel Serverless APIs</h3>
-                                    <ul className="list-disc pl-6 space-y-2">
-                                        {serverlessApis.map((api, index) => (
-                                            <li key={index} className="mb-2">
-                                                <div className="flex items-center">
-                                                    <strong className="text-green-600">API {index + 1}: {api.name}</strong> ({api.method} {api.endpoint})
-                                                    <span
-                                                        className={`ml-2 w-3 h-3 rounded-full ${
-                                                            apiStatus[api.name] === 'success' ? 'bg-green-500' :
-                                                            apiStatus[api.name] === 'failed' ? 'bg-red-500' :
-                                                            apiStatus[api.name] === 'generating' ? 'bg-yellow-500' :
-                                                            'bg-gray-500'
-                                                        }`}
-                                                        title={apiStatus[api.name] || 'Unknown'}
-                                                    />
-                                                </div>
-                                                {editingApiIndex === index ? (
-                                                    <div>
-                                                        <textarea
-                                                            className="w-full p-2 mt-2 border rounded"
-                                                            value={api.code}
-                                                            onChange={(e) => handleApiCodeChange(index, e.target.value)}
-                                                            rows={10}
-                                                        />
-                                                        <div className="flex justify-end space-x-2 mt-2">
-                                                            <button
-                                                                className="btn bg-blue-500 text-white py-1 px-3 rounded"
-                                                                onClick={() => handleSaveApiCode(index)}
-                                                            >
-                                                                Save
-                                                            </button>
-                                                            <button
-                                                                className="btn bg-gray-500 text-white py-1 px-3 rounded"
-                                                                onClick={() => setEditingApiIndex(-1)}
-                                                            >
-                                                                Cancel
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div>
-                                                        <pre className="bg-gray-200 p-2 rounded mt-2">{api.code}</pre>
-                                                        <div className="flex justify-end space-x-2 mt-2">
-                                                            <button
-                                                                className="btn bg-yellow-500 text-white py-1 px-3 rounded"
-                                                                onClick={() => setEditingApiIndex(index)}
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            <button
-                                                                className="btn bg-red-500 text-white py-1 px-3 rounded"
-                                                                onClick={() => handleOpenPromptDialog(index)}
-                                                            >
-                                                                Regenerate with Prompt
-                                                            </button>
-                                                            <button
-                                                                className="btn bg-blue-500 text-white py-1 px-3 rounded"
-                                                                onClick={() => handleRegenerateApiWithoutPrompt(index)}
-                                                            >
-                                                                Regenerate
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    <ul className="list-none pl-6 space-y-2">
+    {serverlessApis.map((api, index) => (
+        <li key={index} className="mb-2">
+            <div className="flex items-center">
+                {/* Conditionally render ☑ if the API is generated, otherwise ▣ */}
+                <span className="text-2xl mr-2">
+                    {apiStatus[api.name] === 'success' ? '☑' : '▣'}
+                </span>
+                <strong className="text-green-600">API {index + 1}: {api.name}</strong> ({api.method} {api.endpoint})
+                <span
+                    className={`ml-2 w-3 h-3 rounded-full ${
+                        apiStatus[api.name] === 'success' ? 'bg-green-500' :
+                        apiStatus[api.name] === 'failed' ? 'bg-red-500' :
+                        apiStatus[api.name] === 'generating' ? 'bg-yellow-500' :
+                        'bg-gray-500'
+                    }`}
+                    title={apiStatus[api.name] || 'Unknown'}
+                />
+            </div>
+            {editingApiIndex === index ? (
+                <div>
+                    <textarea
+                        className="w-full p-2 mt-2 border rounded"
+                        value={api.code}
+                        onChange={(e) => handleApiCodeChange(index, e.target.value)}
+                        rows={10}
+                    />
+                    <div className="flex justify-end space-x-2 mt-2">
+                        <button
+                            className="btn bg-black text-white py-1 px-3 rounded"
+                            onClick={() => handleSaveApiCode(index)}
+                        >
+                            Save
+                        </button>
+                        <button
+                            className="btn bg-gray-500 text-white py-1 px-3 rounded"
+                            onClick={() => setEditingApiIndex(-1)}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <div>
+                    <pre className="bg-gray-200 p-2 rounded mt-2">{api.code}</pre>
+                    <div className="flex justify-end space-x-2 mt-2">
+                        <button
+                            className="btn bg-yellow-500 text-white py-1 px-3 rounded"
+                            onClick={() => setEditingApiIndex(index)}
+                        >
+                            Edit
+                        </button>
+                        <button
+                            className="btn bg-red-500 text-white py-1 px-3 rounded"
+                            onClick={() => handleOpenPromptDialog(index)}
+                        >
+                            Regenerate with Prompt
+                        </button>
+                        <button
+                            className="btn bg-black text-white py-1 px-3 rounded"
+                            onClick={() => handleRegenerateApiWithoutPrompt(index)}
+                        >
+                            Regenerate
+                        </button>
+                    </div>
+                </div>
+            )}
+        </li>
+    ))}
+</ul>
+
                                 </div>
                             )}
                         </div>
@@ -758,7 +777,7 @@ export default function ProjectDashboard({ projectData }) {
                                 ></textarea>
                                 <div className="flex justify-end space-x-2">
                                     <button onClick={handleClosePromptDialog} className="btn bg-gray-500 text-white py-1 px-3 rounded">Cancel</button>
-                                    <button onClick={handleRegenerateApiWithPrompt} className="btn bg-blue-500 text-white py-1 px-3 rounded">Regenerate</button>
+                                    <button onClick={handleRegenerateApiWithPrompt} className="btn bg-black text-white py-1 px-3 rounded">Regenerate</button>
                                 </div>
                             </div>
                         </div>
@@ -777,7 +796,7 @@ export default function ProjectDashboard({ projectData }) {
                                 ></textarea>
                                 <div className="flex justify-end space-x-2">
                                     <button onClick={() => setShowRegenerateAllDialog(false)} className="btn bg-gray-500 text-white py-1 px-3 rounded">Cancel</button>
-                                    <button onClick={handleRegenerateAllComponents} className="btn bg-blue-500 text-white py-1 px-3 rounded">Regenerate</button>
+                                    <button onClick={handleRegenerateAllComponents} className="btn bg-black text-white py-1 px-3 rounded">Regenerate</button>
                                 </div>
                             </div>
                         </div>
