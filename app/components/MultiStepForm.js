@@ -27,6 +27,17 @@ export default function MultiStepForm({ onComplete }) {
         onComplete(formData);
     };
 
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent the default form submission
+            if (step < 5) {
+                handleNext();
+            } else {
+                handleComplete();
+            }
+        }
+    };
+
     return (
         <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg mx-auto">
             <div className="mb-6">
@@ -41,6 +52,7 @@ export default function MultiStepForm({ onComplete }) {
                         name="projectName" 
                         value={formData.projectName} 
                         onChange={handleChange} 
+                        onKeyPress={handleKeyPress} // Added to listen for "Enter" key
                         className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:border-blue-500 mb-4"
                         placeholder="Enter your project name"
                     />
@@ -88,6 +100,7 @@ export default function MultiStepForm({ onComplete }) {
                         name="colors" 
                         value={formData.colors} 
                         onChange={handleChange} 
+                        onKeyPress={handleKeyPress} // Added to listen for "Enter" key
                         className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:border-blue-500 mb-4"
                         placeholder="Enter preferred colors"
                     />
@@ -100,12 +113,20 @@ export default function MultiStepForm({ onComplete }) {
             {step === 4 && (
                 <div>
                     <label className="block text-gray-700 mb-2 text-lg">Do you have a logo?</label>
-                    <input 
-                        type="file" 
-                        name="logo" 
-                        onChange={handleChange} 
-                        className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:border-blue-500 mb-4"
-                    />
+                    <div className="flex items-center justify-between mb-4">
+            <label className="cursor-pointer shadow-md text-black py-2 px-4 rounded-lg hover:bg-gray-200 transition duration-200">
+                Choose File (optional)
+                <input 
+                    type="file" 
+                    name="logo" 
+                    onChange={handleChange} 
+                    className="hidden"
+                />
+            </label>
+            <span className="ml-4 text-gray-500">
+                {formData.logo ? formData.logo.name : 'No file chosen'}
+            </span>
+        </div>
                     <div className="flex justify-between">
                         <button onClick={handlePrev} className="btn-secondary">Previous</button>
                         <button onClick={handleNext} className="btn-primary">Next</button>
@@ -119,6 +140,7 @@ export default function MultiStepForm({ onComplete }) {
                         name="purpose" 
                         value={formData.purpose} 
                         onChange={handleChange} 
+                        onKeyPress={handleKeyPress} // Added to listen for "Enter" key
                         className="border border-gray-300 p-3 rounded-lg w-full focus:outline-none focus:border-blue-500 mb-4" 
                         rows="4"
                         placeholder="Describe the purpose of your website"

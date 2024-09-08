@@ -610,19 +610,19 @@ export default function ProjectDashboard({ projectData }) {
                         </button>
                         <button
                             onClick={handleShowFolderStructure}
-                            className="btn py-2 px-4 bg-green-500 text-white rounded bg-black"
+                            className="btn py-2 px-4 bg-black text-white rounded bg-black"
                         >
                             Toggle Folder Structure
                         </button>
                         <button
                             onClick={handleRegenerateHeader} // Add the regenerate Header button
-                            className="btn py-2 px-4 bg-orange-500 text-white rounded bg-black"
+                            className="btn py-2 px-4 bg-black text-white rounded bg-black"
                         >
                             Regenerate Header
                         </button>
                         <button
                             onClick={() => setShowRegenerateAllDialog(true)}
-                            className="btn py-2 px-4 bg-purple-500 text-white rounded bg-black"
+                            className="btn py-2 px-4 bg-black text-white rounded bg-black"
                         >
                             Regenerate All Components
                         </button>
@@ -636,13 +636,13 @@ export default function ProjectDashboard({ projectData }) {
                             <div className="view-mode-buttons flex space-x-2 mb-4">
                                 <button
                                     onClick={() => handleViewModeChange('rendered')}
-                                    className={`btn py-2 px-4 rounded ${viewMode === 'rendered' ? 'bg-blue-900 text-white' : 'bg-white text-green-500 border border-blue-900'}`}
+                                    className={`py-2 px-4 rounded ${viewMode === 'rendered' ? 'bg-blue-900 text-white' : 'bg-white text-black'}`}
                                 >
                                     Rendered ▤
                                 </button>
                                 <button
                                     onClick={() => handleViewModeChange('code')}
-                                    className={`btn py-2 px-4 rounded ${viewMode === 'code' ? 'bg-blue-900 text-white' : 'bg-white text-green-500 border border-blue-900'}`}
+                                    className={`py-2 px-4 rounded ${viewMode === 'code' ? 'bg-blue-900 text-white' : 'bg-white text-black'}`}
                                 >
                                     Code &lt;/&gt;
                                 </button>

@@ -266,7 +266,7 @@ export default function Dashboard({ formData, onSubmit }) {
                 {error && (
                     <div className="bg-red-100 border border-red-300 text-red-800 p-4 rounded-lg shadow">
                         <p>{error}</p>
-                        <p>If the problem persists, please go to <a href="https://sparkengine.ai" style={{color:'inherit'}}>Spark Engine</a> to top up your credits for $0.99/week. This AI application requires multiple AI models to run.</p>
+                        <p>If the problem persists, please go to <a href="https://sparkengine.ai" style={{color:'inherit', textDecoration: 'underline'}}>Spark Engine</a> to top up your credits for $0.99/week. This AI application requires multiple AI models to run.</p>
                         <button
                             onClick={handleRegenerate}
                             className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all"
@@ -416,7 +416,7 @@ export default function Dashboard({ formData, onSubmit }) {
                         <div className="flex justify-end space-x-4 mt-8">
                             <button
                                 onClick={handleRegenerate}
-                                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition"
+                                className="btn px-6 py-2 rounded-lg hover:bg-gray-100 transition"
                             >
                                 Regenerate ↺
                             </button>
@@ -462,7 +462,7 @@ export default function Dashboard({ formData, onSubmit }) {
                         <div className="flex justify-end space-x-4 mt-8">
                             <button
                                 onClick={handleRegenerate}
-                                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition"
+                                className="btn px-6 py-2 rounded-lg hover:bg-gray-100 transition"
                             >
                                 Regenerate ↺
                             </button>
@@ -581,7 +581,7 @@ export default function Dashboard({ formData, onSubmit }) {
                         <div className="flex justify-end space-x-4 mt-8">
                             <button
                                 onClick={handleRegenerate}
-                                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition"
+                                className="btn px-6 py-2 rounded-lg hover:bg-gray-100 transition"
                             >
                                 Regenerate ↺
                             </button>
@@ -737,7 +737,7 @@ export default function Dashboard({ formData, onSubmit }) {
                         <div className="flex justify-end space-x-4 mt-8">
                             <button
                                 onClick={handleRegenerate}
-                                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition"
+                                className="btn px-6 py-2 rounded-lg hover:bg-gray-100 transition"
                             >
                                 Regenerate ↺
                             </button>
@@ -856,7 +856,7 @@ export default function Dashboard({ formData, onSubmit }) {
                         <div className="flex justify-end space-x-4 mt-8">
                             <button
                                 onClick={handleRegenerate}
-                                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition"
+                                className="btn px-6 py-2 rounded-lg hover:bg-gray-100 transition"
                             >
                                 Regenerate ↺
                             </button>
@@ -1046,8 +1046,8 @@ export default function Dashboard({ formData, onSubmit }) {
                         </div>
 
                         <div className="flex space-x-4">
-                            <button onClick={handleRegenerate} className="btn bg-gray-500 rounded-lg hover:bg-gray-600 transition">Regenerate ↺</button>
-                            <button onClick={handleSave} className="btn bg-green-800 rounded-lg hover:bg-green-900 transition">Save and Start Generating ✔</button>
+                            <button onClick={handleRegenerate} className="btn rounded-lg hover:bg-gray-100 transition">Regenerate ↺</button>
+                            <button onClick={handleSave} className="btn bg-green-500 rounded-lg transition">Save and Start Generating ✔</button>
                         </div>
                     </div>
                 )}
