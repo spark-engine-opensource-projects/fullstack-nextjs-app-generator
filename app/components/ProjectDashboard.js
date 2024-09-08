@@ -636,15 +636,15 @@ export default function ProjectDashboard({ projectData }) {
                             <div className="view-mode-buttons flex space-x-2 mb-4">
                                 <button
                                     onClick={() => handleViewModeChange('rendered')}
-                                    className={`btn py-2 bg-black px-4 rounded ${viewMode === 'rendered' ? 'bg-green-500 text-white' : 'bg-white text-green-500 border border-green-500'}`}
+                                    className={`btn py-2 px-4 rounded ${viewMode === 'rendered' ? 'bg-blue-900 text-white' : 'bg-white text-green-500 border border-blue-900'}`}
                                 >
-                                    Rendered
+                                    Rendered ▤
                                 </button>
                                 <button
                                     onClick={() => handleViewModeChange('code')}
-                                    className={`btn py-2 bg-black px-4 rounded ${viewMode === 'code' ? 'bg-green-500 text-white' : 'bg-white text-green-500 border border-green-500'}`}
+                                    className={`btn py-2 px-4 rounded ${viewMode === 'code' ? 'bg-blue-900 text-white' : 'bg-white text-green-500 border border-blue-900'}`}
                                 >
-                                    Code
+                                    Code &lt;/&gt;
                                 </button>
                             </div>
                             <div className="components bg-white p-4 rounded shadow">

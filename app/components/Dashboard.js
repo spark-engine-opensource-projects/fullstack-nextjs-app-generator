@@ -407,7 +407,7 @@ export default function Dashboard({ formData, onSubmit }) {
                             </div>
                             <button
                                 onClick={handleAddPage}
-                                className="bg-black text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                                className="text-black px-4 py-2 rounded-lg hover:bg-blue-600 transition"
                             >
                                 Add Page
                             </button>
@@ -570,7 +570,7 @@ export default function Dashboard({ formData, onSubmit }) {
                                         </select>
                                         <button
                                             onClick={handleAddApi}
-                                            className="bg-black w-60 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                                            className="w-60 text-black px-4 py-2 rounded-lg hover:bg-blue-600 transition"
                                         >
                                             Add API +
                                         </button>
@@ -845,7 +845,7 @@ export default function Dashboard({ formData, onSubmit }) {
                                         </select>
                                         <button
                                             onClick={handleAddApi}
-                                            className="bg-black w-60 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                                            className="w-60 text-black px-4 py-2 rounded-lg hover:bg-blue-600 transition"
                                         >
                                             Add API +
                                         </button>
@@ -1046,8 +1046,8 @@ export default function Dashboard({ formData, onSubmit }) {
                         </div>
 
                         <div className="flex space-x-4">
-                            <button onClick={handleRegenerate} className="btn">Regenerate ↺</button>
-                            <button onClick={handleSave} className="btn">Save and Go</button>
+                            <button onClick={handleRegenerate} className="btn bg-gray-500 rounded-lg hover:bg-gray-600 transition">Regenerate ↺</button>
+                            <button onClick={handleSave} className="btn bg-green-800 rounded-lg hover:bg-green-900 transition">Save and Start Generating ✔</button>
                         </div>
                     </div>
                 )}

@@ -30,15 +30,10 @@
 .btn {
     border: none;
     padding: 10px 20px;
-    background-color: black;
-    color: white;
+    color: black;
     cursor: pointer;
     margin-right: 10px;
     border-radius: 4px;
-}
-
-.btn:hover {
-    background-color: #202020;
 }
 
 .dashboard {
