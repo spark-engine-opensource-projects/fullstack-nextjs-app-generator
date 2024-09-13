@@ -610,19 +610,19 @@ export default function ProjectDashboard({ projectData }) {
                         </button>
                         <button
                             onClick={handleShowFolderStructure}
-                            className="btn py-2 px-4 bg-black text-white rounded bg-black"
+                            className="py-2 px-4 bg-black text-white rounded bg-black"
                         >
                             Toggle Folder Structure
                         </button>
                         <button
                             onClick={handleRegenerateHeader} // Add the regenerate Header button
-                            className="btn py-2 px-4 bg-black text-white rounded bg-black"
+                            className="py-2 px-4 bg-black text-white rounded bg-black"
                         >
                             Regenerate Header
                         </button>
                         <button
                             onClick={() => setShowRegenerateAllDialog(true)}
-                            className="btn py-2 px-4 bg-black text-white rounded bg-black"
+                            className="py-2 px-4 bg-black text-white rounded bg-black"
                         >
                             Regenerate All Components
                         </button>
