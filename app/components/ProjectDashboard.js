@@ -238,12 +238,12 @@ export default function ProjectDashboard({ projectData }) {
 
     function constructApiPrompt(api, databaseSchema) {
         const { name, method, endpoint } = api;
-    
+
         // Start constructing the prompt with API details
         let prompt = `Generate a serverless API function named "${name}" with the following details:\n`;
         prompt += `- HTTP Method: ${method}\n`;
         prompt += `- Endpoint: ${endpoint}\n`;
-    
+
         // Since there's always a database schema, include its details
         prompt += `\nThis API should interact with the following database schema:\n`;
         databaseSchema.forEach(table => {
@@ -259,13 +259,13 @@ export default function ProjectDashboard({ projectData }) {
                 });
             }
         });
-    
+
         // Add any additional instructions or context for the API generation
         prompt += `\nEnsure that the API follows best practices for security and performance. The API should handle all necessary error cases and edge cases gracefully.`;
-    
+
         return prompt;
     }
-    
+
 
     const handleRegenerateApiWithoutPrompt = async (index) => {
         try {
@@ -372,7 +372,7 @@ export default function ProjectDashboard({ projectData }) {
 
     const DynamicComponent = React.memo(({ component }) => {
         try {
-            const Component = new Function('React', 'styled', `return ${component.code}`)(React,styled);
+            const Component = new Function('React', 'styled', `return ${component.code}`)(React, styled);
             return <Component />;
         } catch (error) {
             console.error(`Error in DynamicComponent: ${component.name}`, error);
@@ -398,7 +398,7 @@ export default function ProjectDashboard({ projectData }) {
                             return (
                                 <div key={index} className="component">
                                     <p>
-                                        {component.name} - 
+                                        {component.name} -
                                         <span className="text-red-500">Error</span>
                                     </p>
                                     <button
@@ -415,7 +415,7 @@ export default function ProjectDashboard({ projectData }) {
                                             );
                                             setProjectComponents({ ...projectComponents, pages: updatedPages });
                                         })}
-                                        className="btn py-2 px-4 bg-red-500 text-white rounded"
+                                        className="py-2 px-4 bg-red-500 text-white rounded"
                                     >
                                         Regenerate Component
                                     </button>
@@ -433,7 +433,7 @@ export default function ProjectDashboard({ projectData }) {
                             const handleRegenerate = () => {
                                 // Prompt the user for input regarding the component regeneration
                                 const userModification = prompt(`Please provide details on how you'd like to modify the component "${component.name}"`);
-                            
+
                                 if (userModification) {
                                     // If the user provides input, include it in the prompt for generating the component
                                     generateComponent(
@@ -447,7 +447,7 @@ export default function ProjectDashboard({ projectData }) {
                                                 c.name === component.name ? newComponent : c
                                             ),
                                         }));
-                            
+
                                         setProjectComponents({ ...projectComponents, pages: updatedPages });
                                     }).catch(error => {
                                         console.error(`Error regenerating component '${component.name}':`, error);
@@ -456,7 +456,7 @@ export default function ProjectDashboard({ projectData }) {
                                     alert('Component regeneration was canceled.');
                                 }
                             };
-                            
+
 
                             return (
                                 <div
@@ -465,7 +465,7 @@ export default function ProjectDashboard({ projectData }) {
                                     style={{ cursor: 'pointer', border: '1px solid #ddd', padding: '10px', marginBottom: '10px' }}
                                 >
                                     <ErrorBoundary key={`${component.name}-${index}`} onRegenerate={() => handleRegenerate(component, index)}>
-                                            <DynamicComponent component={component} />
+                                        <DynamicComponent component={component} />
                                     </ErrorBoundary>
                                 </div>
                             );
@@ -474,7 +474,7 @@ export default function ProjectDashboard({ projectData }) {
                             return (
                                 <div key={index} className="component">
                                     <p>
-                                        Failed to display component: {component.name} - 
+                                        Failed to display component: {component.name} -
                                         <span className="text-red-500">Error</span>
                                     </p>
                                     <button
@@ -491,7 +491,7 @@ export default function ProjectDashboard({ projectData }) {
                                             );
                                             setProjectComponents({ ...projectComponents, pages: updatedPages });
                                         })}
-                                        className="btn py-2 px-4 bg-red-500 text-white rounded"
+                                        className=" py-2 px-4 bg-red-500 text-white rounded"
                                     >
                                         Regenerate Component
                                     </button>
@@ -506,7 +506,7 @@ export default function ProjectDashboard({ projectData }) {
                 <div>
                     {page.components.map((component, index) => (
                         <div key={index} className="component-code">
-                            <p>{component.name} - 
+                            <p>{component.name} -
                                 <span className={componentStatus[component.name] === 'success' ? 'text-green-500' : 'text-red-500'}>
                                     {componentStatus[component.name] || 'Unknown'}
                                 </span>
@@ -540,53 +540,53 @@ export default function ProjectDashboard({ projectData }) {
     return (
         <div className="project-dashboard w-full p-4 bg-gray-100 min-h-screen">
             {loading ? (
-    <div className="loading-screen bg-white p-6 rounded shadow-lg">
-    <h2 className="text-2xl font-bold mb-4">Generating Project Components...</h2>
-    <div>
-        <h3 className="font-semibold">Components</h3>
-        <ul className="list-none pl-6">
-            {Object.entries(componentStatus).map(([name, status]) => (
-                <li key={name} className="flex items-center">
-                    {/* Show ☑ for success, otherwise ▣ */}
-                    <span className="text-2xl mr-2">
-                        {status === 'success' ? '☑' : '▣'}
-                    </span>
-                    <span>
-                        {name}: <span className={`font-semibold ${status === 'success' ? 'text-green-500' : status === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </span>
-                    </span>
-                </li>
-            ))}
-        </ul>
-    </div>
-    <div className="mt-4">
-        <h3 className="font-semibold">APIs</h3>
-        <ul className="list-none pl-6">
-            {Object.entries(apiStatus).map(([name, status]) => (
-                <li key={name} className="flex items-center">
-                    {/* Show ☑ for success, otherwise ▣ */}
-                    <span className="text-2xl mr-2">
-                        {status === 'success' ? '☑' : '▣'}
-                    </span>
-                    <span>
-                        {name}: <span className={`font-semibold ${status === 'success' ? 'text-green-500' : status === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </span>
-                    </span>
-                </li>
-            ))}
-        </ul>
-    </div>
-    <div className="mt-4">
-        <h3 className="font-semibold">SQL</h3>
-        <p>
-            Status: <span className={`font-semibold ${sqlStatus === 'success' ? 'text-green-500' : sqlStatus === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
-                {sqlStatus === 'success' ? '☑' : '▣'} {sqlStatus.charAt(0).toUpperCase() + sqlStatus.slice(1)}
-            </span>
-        </p>
-    </div>
-</div>
+                <div className="loading-screen bg-white p-6 rounded shadow-lg">
+                    <h2 className="text-2xl font-bold mb-4">Generating Project Components...</h2>
+                    <div>
+                        <h3 className="font-semibold">Components</h3>
+                        <ul className="list-none pl-6">
+                            {Object.entries(componentStatus).map(([name, status]) => (
+                                <li key={name} className="flex items-center">
+                                    {/* Show ☑ for success, otherwise ▣ */}
+                                    <span className="text-2xl mr-2">
+                                        {status === 'success' ? '☑' : '▣'}
+                                    </span>
+                                    <span>
+                                        {name}: <span className={`font-semibold ${status === 'success' ? 'text-green-500' : status === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
+                                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                                        </span>
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div className="mt-4">
+                        <h3 className="font-semibold">APIs</h3>
+                        <ul className="list-none pl-6">
+                            {Object.entries(apiStatus).map(([name, status]) => (
+                                <li key={name} className="flex items-center">
+                                    {/* Show ☑ for success, otherwise ▣ */}
+                                    <span className="text-2xl mr-2">
+                                        {status === 'success' ? '☑' : '▣'}
+                                    </span>
+                                    <span>
+                                        {name}: <span className={`font-semibold ${status === 'success' ? 'text-green-500' : status === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
+                                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                                        </span>
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div className="mt-4">
+                        <h3 className="font-semibold">SQL</h3>
+                        <p>
+                            Status: <span className={`font-semibold ${sqlStatus === 'success' ? 'text-green-500' : sqlStatus === 'failed' ? 'text-red-500' : 'text-yellow-500'}`}>
+                                {sqlStatus === 'success' ? '☑' : '▣'} {sqlStatus.charAt(0).toUpperCase() + sqlStatus.slice(1)}
+                            </span>
+                        </p>
+                    </div>
+                </div>
             ) : (
                 <>
                     <div className="tabs flex space-x-4 mb-4">
@@ -660,75 +660,74 @@ export default function ProjectDashboard({ projectData }) {
                                 <div>
                                     <h3 className="text-xl font-bold mb-4">Vercel Serverless APIs</h3>
                                     <ul className="list-none pl-6 space-y-2">
-    {serverlessApis.map((api, index) => (
-        <li key={index} className="mb-2">
-            <div className="flex items-center">
-                {/* Conditionally render ☑ if the API is generated, otherwise ▣ */}
-                <span className="text-2xl mr-2">
-                    {apiStatus[api.name] === 'success' ? '☑' : '▣'}
-                </span>
-                <strong className="text-green-600">API {index + 1}: {api.name}</strong> ({api.method} {api.endpoint})
-                <span
-                    className={`ml-2 w-3 h-3 rounded-full ${
-                        apiStatus[api.name] === 'success' ? 'bg-green-500' :
-                        apiStatus[api.name] === 'failed' ? 'bg-red-500' :
-                        apiStatus[api.name] === 'generating' ? 'bg-yellow-500' :
-                        'bg-gray-500'
-                    }`}
-                    title={apiStatus[api.name] || 'Unknown'}
-                />
-            </div>
-            {editingApiIndex === index ? (
-                <div>
-                    <textarea
-                        className="w-full p-2 mt-2 border rounded"
-                        value={api.code}
-                        onChange={(e) => handleApiCodeChange(index, e.target.value)}
-                        rows={10}
-                    />
-                    <div className="flex justify-end space-x-2 mt-2">
-                        <button
-                            className="btn bg-black text-white py-1 px-3 rounded"
-                            onClick={() => handleSaveApiCode(index)}
-                        >
-                            Save
-                        </button>
-                        <button
-                            className="btn bg-gray-500 text-white py-1 px-3 rounded"
-                            onClick={() => setEditingApiIndex(-1)}
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            ) : (
-                <div>
-                    <pre className="bg-gray-200 p-2 rounded mt-2">{api.code}</pre>
-                    <div className="flex justify-end space-x-2 mt-2">
-                        <button
-                            className="btn bg-yellow-500 text-white py-1 px-3 rounded"
-                            onClick={() => setEditingApiIndex(index)}
-                        >
-                            Edit
-                        </button>
-                        <button
-                            className="btn bg-red-500 text-white py-1 px-3 rounded"
-                            onClick={() => handleOpenPromptDialog(index)}
-                        >
-                            Regenerate with Prompt
-                        </button>
-                        <button
-                            className="btn bg-black text-white py-1 px-3 rounded"
-                            onClick={() => handleRegenerateApiWithoutPrompt(index)}
-                        >
-                            Regenerate
-                        </button>
-                    </div>
-                </div>
-            )}
-        </li>
-    ))}
-</ul>
+                                        {serverlessApis.map((api, index) => (
+                                            <li key={index} className="mb-2">
+                                                <div className="flex items-center">
+                                                    {/* Conditionally render ☑ if the API is generated, otherwise ▣ */}
+                                                    <span className="text-2xl mr-2">
+                                                        {apiStatus[api.name] === 'success' ? '☑' : '▣'}
+                                                    </span>
+                                                    <strong className="text-green-600">API {index + 1}: {api.name}</strong> ({api.method} {api.endpoint})
+                                                    <span
+                                                        className={`ml-2 w-3 h-3 rounded-full ${apiStatus[api.name] === 'success' ? 'bg-green-500' :
+                                                                apiStatus[api.name] === 'failed' ? 'bg-red-500' :
+                                                                    apiStatus[api.name] === 'generating' ? 'bg-yellow-500' :
+                                                                        'bg-gray-500'
+                                                            }`}
+                                                        title={apiStatus[api.name] || 'Unknown'}
+                                                    />
+                                                </div>
+                                                {editingApiIndex === index ? (
+                                                    <div>
+                                                        <textarea
+                                                            className="w-full p-2 mt-2 border rounded"
+                                                            value={api.code}
+                                                            onChange={(e) => handleApiCodeChange(index, e.target.value)}
+                                                            rows={10}
+                                                        />
+                                                        <div className="flex justify-end space-x-2 mt-2">
+                                                            <button
+                                                                className="bg-black text-white py-1 px-3 rounded"
+                                                                onClick={() => handleSaveApiCode(index)}
+                                                            >
+                                                                Save
+                                                            </button>
+                                                            <button
+                                                                className="bg-gray-500 text-white py-1 px-3 rounded"
+                                                                onClick={() => setEditingApiIndex(-1)}
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <pre className="bg-gray-200 p-2 rounded mt-2">{api.code}</pre>
+                                                        <div className="flex justify-end space-x-2 mt-2">
+                                                            <button
+                                                                className="bg-yellow-500 text-white py-1 px-3 rounded"
+                                                                onClick={() => setEditingApiIndex(index)}
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                className="bg-red-500 text-white py-1 px-3 rounded"
+                                                                onClick={() => handleOpenPromptDialog(index)}
+                                                            >
+                                                                Regenerate with Prompt
+                                                            </button>
+                                                            <button
+                                                                className="bg-black text-white py-1 px-3 rounded"
+                                                                onClick={() => handleRegenerateApiWithoutPrompt(index)}
+                                                            >
+                                                                Regenerate
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
 
                                 </div>
                             )}
@@ -776,8 +775,8 @@ export default function ProjectDashboard({ projectData }) {
                                     placeholder="Enter additional prompt here"
                                 ></textarea>
                                 <div className="flex justify-end space-x-2">
-                                    <button onClick={handleClosePromptDialog} className="btn bg-gray-500 text-white py-1 px-3 rounded">Cancel</button>
-                                    <button onClick={handleRegenerateApiWithPrompt} className="btn bg-black text-white py-1 px-3 rounded">Regenerate</button>
+                                    <button onClick={handleClosePromptDialog} className="bg-gray-500 text-white py-1 px-3 rounded">Cancel</button>
+                                    <button onClick={handleRegenerateApiWithPrompt} className="bg-black text-white py-1 px-3 rounded">Regenerate</button>
                                 </div>
                             </div>
                         </div>
@@ -795,8 +794,8 @@ export default function ProjectDashboard({ projectData }) {
                                     placeholder="Enter additional prompt here (e.g., 'Give it a more corporate look')"
                                 ></textarea>
                                 <div className="flex justify-end space-x-2">
-                                    <button onClick={() => setShowRegenerateAllDialog(false)} className="btn bg-gray-500 text-white py-1 px-3 rounded">Cancel</button>
-                                    <button onClick={handleRegenerateAllComponents} className="btn bg-black text-white py-1 px-3 rounded">Regenerate</button>
+                                    <button onClick={() => setShowRegenerateAllDialog(false)} className="bg-gray-500 text-white py-1 px-3 rounded">Cancel</button>
+                                    <button onClick={handleRegenerateAllComponents} className="bg-black text-white py-1 px-3 rounded">Regenerate</button>
                                 </div>
                             </div>
                         </div>
