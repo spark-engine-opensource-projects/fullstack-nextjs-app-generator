@@ -2,6 +2,23 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import ErrorBoundary from './ErrorBoundary';
 
+const Wrapper = styled.div`
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+`;
+
+const RegenerateButton = styled.button`
+    display: block;
+    margin-top: 20px; // Adjust this value to increase the spacing
+    margin-bottom: 10px;
+    padding: 10px 16px;
+    background-color: #fbfbfb;
+    color: black;
+    border-radius: 4px;
+    cursor: pointer;
+`;
+
 const DynamicComponentWrapper = ({ componentCode, componentName, regenerateComponent, componentProps = {} }) => {
     const [Component, setComponent] = useState(null);
 
@@ -27,7 +44,7 @@ const DynamicComponentWrapper = ({ componentCode, componentName, regenerateCompo
     };
 
     return (
-        <div style={{ border: '1px solid #ddd', padding: '10px', marginBottom: '10px' }}>
+        <Wrapper>
             <ErrorBoundary>
                 {Component ? (
                     <Component {...componentProps} />
@@ -35,10 +52,10 @@ const DynamicComponentWrapper = ({ componentCode, componentName, regenerateCompo
                     <div>Loading {componentName}...</div>
                 )}
             </ErrorBoundary>
-            <button onClick={handleRegenerate} className="py-2 px-4 bg-blue-500 text-white rounded mt-2">
-                Regenerate Component
-            </button>
-        </div>
+            <RegenerateButton onClick={handleRegenerate}>
+                Regenerate
+            </RegenerateButton>
+        </Wrapper>
     );
 };
 
