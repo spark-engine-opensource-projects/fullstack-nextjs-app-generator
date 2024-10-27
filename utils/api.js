@@ -1,6 +1,6 @@
 // utils/api.js
 import axios from 'axios';
-import sparkConfig from '../../spark.config.json';
+import sparkConfig from '../spark.config.json';
 
 // Utility function to evaluate and replace expressions within strings
 const evaluateExpressions = (str, context) => {

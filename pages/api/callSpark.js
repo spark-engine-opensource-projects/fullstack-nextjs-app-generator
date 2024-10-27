@@ -10,8 +10,8 @@ export default async function handler(req, res) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                apiKey: process.env.SPARK_API_KEY,
-                ProjectId: projectId,
+                api_key: process.env.SPARK_API_KEY,
+                project_id: projectId,
                 prompt: prompt
             })
         });
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
         }
     
         const responseData = await response.json()
-        
+        console.log(responseData)
         res.status(200).json(responseData.data);
     
     } catch (error) {

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { generateNormalReactPage } from '../utils/api'; // Import the generateNormalReactPage function
+import { generateNormalReactPage } from './api'; // Import the generateNormalReactPage function
 
 const generateFolderStructureJson = async (projectData, projectComponents, jsconfig, serverlessApis) => {
     if (!projectData || !projectComponents || !jsconfig || !serverlessApis) return null;

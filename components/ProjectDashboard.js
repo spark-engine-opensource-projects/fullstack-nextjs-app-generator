@@ -3,6 +3,7 @@ import { generateDynamicallyRenderingReactComponent, generateServerlessApi, gene
 import ErrorBoundary from './ErrorBoundary';
 import ProjectFolderStructure from './ProjectFolderStructure';
 import useGenerateFolderStructure from '../utils/folderStructure';
+import DynamicComponentWrapper from './DynamicComponentWrapper';
 
 //Is okay
 import styled from 'styled-components';
@@ -382,123 +383,40 @@ export default function ProjectDashboard({ projectData }) {
 
     const renderComponents = () => {
         if (!projectComponents?.pages || !selectedPage) return null;
-
+    
         const page = projectComponents.pages.find((p) => p.name === selectedPage);
-
+    
         if (!page || !page.components) return null;
-
+    
         if (viewMode === 'rendered') {
             return (
                 <div>
-                    {page.components.map((component, index) => {
-                        const status = componentStatus[component.name];
-
-                        if (typeof component.code !== 'string' || !component.code.trim()) {
-                            console.error(`Component code for ${component.name} is invalid or empty:`, component.code);
-                            return (
-                                <div key={index} className="component">
-                                    <p>
-                                        {component.name} -
-                                        <span className="text-red-500">Error</span>
-                                    </p>
-                                    <button
-                                        onClick={() => generateComponent(component.name, page.purpose, JSON.stringify(projectData.styling)).then((newComponent) => {
-                                            const updatedPages = projectComponents.pages.map((p) =>
-                                                p.name === page.name
-                                                    ? {
-                                                        ...p,
-                                                        components: p.components.map((c, i) =>
-                                                            i === index ? newComponent : c
-                                                        ),
-                                                    }
-                                                    : p
-                                            );
-                                            setProjectComponents({ ...projectComponents, pages: updatedPages });
-                                        })}
-                                        className="py-2 px-4 bg-red-500 text-white rounded"
-                                    >
-                                        Regenerate Component
-                                    </button>
-                                </div>
-                            );
-                        }
-
-                        try {
-                            const Component = new Function('React', 'styled', `return ${component.code}`)(React, styled);
-
-                            if (typeof Component !== 'function') {
-                                throw new Error(`Generated code did not return a valid React component function.`);
+                    {page.components.map((component, index) => (
+                        <DynamicComponentWrapper
+                            key={`${component.name}-${index}`}
+                            componentCode={component.code}
+                            componentName={component.name}
+                            componentProps={component.props || {}}
+                            regenerateComponent={(userModification) =>
+                                generateComponent(
+                                    component.name,
+                                    `${page.purpose}. ${userModification}`,
+                                    JSON.stringify(projectData.styling)
+                                ).then((newComponent) => {
+                                    // Update the component in the project data after regeneration
+                                    const updatedPages = projectComponents.pages.map((p) => ({
+                                        ...p,
+                                        components: p.components.map((c) =>
+                                            c.name === component.name ? newComponent : c
+                                        ),
+                                    }));
+                                    setProjectComponents({ ...projectComponents, pages: updatedPages });
+                                }).catch(error => {
+                                    console.error(`Error regenerating component '${component.name}':`, error);
+                                })
                             }
-
-                            const handleRegenerate = () => {
-                                // Prompt the user for input regarding the component regeneration
-                                const userModification = prompt(`Please provide details on how you'd like to modify the component "${component.name}"`);
-
-                                if (userModification) {
-                                    // If the user provides input, include it in the prompt for generating the component
-                                    generateComponent(
-                                        component.name,
-                                        `${page.purpose}. ${userModification}`,
-                                        JSON.stringify(projectData.styling)
-                                    ).then((newComponent) => {
-                                        const updatedPages = projectComponents.pages.map((p) => ({
-                                            ...p,
-                                            components: p.components.map((c) =>
-                                                c.name === component.name ? newComponent : c
-                                            ),
-                                        }));
-
-                                        setProjectComponents({ ...projectComponents, pages: updatedPages });
-                                    }).catch(error => {
-                                        console.error(`Error regenerating component '${component.name}':`, error);
-                                    });
-                                } else {
-                                    alert('Component regeneration was canceled.');
-                                }
-                            };
-
-
-                            return (
-                                <div
-                                    key={`${component.name}-${component.code.length}-${index}`}
-                                    onClick={handleRegenerate} // Wrap with click event
-                                    style={{ cursor: 'pointer', border: '1px solid #ddd', padding: '10px', marginBottom: '10px' }}
-                                >
-                                    <ErrorBoundary key={`${component.name}-${index}`} onRegenerate={() => handleRegenerate(component, index)}>
-                                        <DynamicComponent component={component} />
-                                    </ErrorBoundary>
-                                </div>
-                            );
-                        } catch (error) {
-                            console.error(`Failed to render component: ${component.name}`, error);
-                            return (
-                                <div key={index} className="component">
-                                    <p>
-                                        Failed to display component: {component.name} -
-                                        <span className="text-red-500">Error</span>
-                                    </p>
-                                    <button
-                                        onClick={() => generateComponent(component.name, page.purpose, JSON.stringify(projectData.styling)).then((newComponent) => {
-                                            const updatedPages = projectComponents.pages.map((p) =>
-                                                p.name === page.name
-                                                    ? {
-                                                        ...p,
-                                                        components: p.components.map((c, i) =>
-                                                            i === index ? newComponent : c
-                                                        ),
-                                                    }
-                                                    : p
-                                            );
-                                            setProjectComponents({ ...projectComponents, pages: updatedPages });
-                                        })}
-                                        className=" py-2 px-4 bg-red-500 text-white rounded"
-                                    >
-                                        Regenerate Component
-                                    </button>
-                                </div>
-                            );
-                        }
-                    })}
+                        />
+                    ))}
                 </div>
             );
         } else if (viewMode === 'code') {
@@ -506,7 +424,7 @@ export default function ProjectDashboard({ projectData }) {
                 <div>
                     {page.components.map((component, index) => (
                         <div key={index} className="component-code">
-                            <p>{component.name} -
+                            <p>{component.name} - 
                                 <span className={componentStatus[component.name] === 'success' ? 'text-green-500' : 'text-red-500'}>
                                     {componentStatus[component.name] || 'Unknown'}
                                 </span>
@@ -518,6 +436,7 @@ export default function ProjectDashboard({ projectData }) {
             );
         }
     };
+    
 
     const renderSQLCode = () => {
         return (
@@ -647,7 +566,7 @@ export default function ProjectDashboard({ projectData }) {
                                     Code &lt;/&gt;
                                 </button>
                             </div>
-                            <div className="components bg-white p-4 rounded shadow">
+                            <div className="bg-white p-4 rounded shadow">
                                 {renderComponents()}
                             </div>
                         </div>
