@@ -4,6 +4,10 @@ import ErrorBoundary from './ErrorBoundary';
 import ProjectFolderStructure from './ProjectFolderStructure';
 import useGenerateFolderStructure from '../utils/folderStructure';
 import DynamicComponentWrapper from './DynamicComponentWrapper';
+import { ResizableBox } from 'react-resizable';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+import GridLayout from 'react-grid-layout'; // Import GridLayout instead of ResponsiveReactGridLayout
 
 //Is okay
 import styled from 'styled-components';
@@ -29,7 +33,13 @@ import styled from 'styled-components';
 
 export default function ProjectDashboard({ projectData }) {
     const [loading, setLoading] = useState(true);
+    const [pageLayouts, setPageLayouts] = useState({});
+    const [gridWidth, setGridWidth] = useState('95vw');
+    const [gridHeight, setGridHeight] = useState(600);
+    const [layout, setLayout] = useState([]);
+    const [hideDragging, setHideDragging] = useState(false);
     const [projectComponents, setProjectComponents] = useState(null);
+    const [showPagesDropdown, setShowPagesDropdown] = useState(false);
     const [selectedTab, setSelectedTab] = useState('pages');
     const [selectedPage, setSelectedPage] = useState(null);
     const [viewMode, setViewMode] = useState('rendered'); // 'rendered' or 'code'
@@ -355,6 +365,24 @@ export default function ProjectDashboard({ projectData }) {
         setSelectedPage(page);
     };
 
+    const handlePageSelect = (pageName) => {
+        if (selectedPage) {
+            setPageLayouts((prevLayouts) => ({
+                ...prevLayouts,
+                [selectedPage]: {
+                    ...prevLayouts[selectedPage],
+                    layout,
+                    gridWidth,
+                    gridHeight,
+                },
+            }));
+        }
+        setSelectedPage(pageName);
+        setSelectedTab('pages');
+        setShowPagesDropdown(false);
+    };
+    
+
     const handleViewModeChange = (mode) => {
         setViewMode(mode);
     };
@@ -381,6 +409,45 @@ export default function ProjectDashboard({ projectData }) {
         }
     });
 
+    useEffect(() => {
+        if (selectedPage && projectComponents) {
+            const savedPageData = pageLayouts[selectedPage];
+            if (savedPageData && savedPageData.layout) {
+                setLayout(savedPageData.layout);
+                setGridHeight(savedPageData.gridHeight || 600);
+            } else if (layout.length === 0) {
+                const defaultLayout = projectComponents.pages
+                    .find((p) => p.name === selectedPage)
+                    ?.components.map((component, index) => ({
+                        i: `${component.name}-${index}`,
+                        x: (index * 2) % 12,
+                        y: Math.floor((index * 2) / 12) * 2,
+                        w: 2,
+                        h: 2,
+                    })) || [];
+                setLayout(defaultLayout);
+            }
+        }
+    }, [selectedPage]); // Removed projectComponents from dependencies
+    
+    const handleLayoutChange = (newLayout) => {
+        setLayout(newLayout);
+        const maxHeight = Math.max(...newLayout.map((item) => item.y + item.h)) * 100;
+        setGridHeight(maxHeight + 100);
+    
+        if (selectedPage) {
+            setPageLayouts((prevLayouts) => ({
+                ...prevLayouts,
+                [selectedPage]: {
+                    ...prevLayouts[selectedPage],
+                    layout: newLayout,
+                    gridHeight: maxHeight + 100,
+                },
+            }));
+        }
+    };
+    
+    
     const renderComponents = () => {
         if (!projectComponents?.pages || !selectedPage) return null;
     
@@ -390,20 +457,48 @@ export default function ProjectDashboard({ projectData }) {
     
         if (viewMode === 'rendered') {
             return (
-                <div>
-                    {page.components.map((component, index) => (
+                <ResizableBox
+                    width='95vw'
+                    height={gridHeight}
+                    minConstraints={[600, 400]}
+                    maxConstraints={[2000, 2000]}
+                    onResize={(e, data) => {
+                        setGridHeight(data.size.height);
+                    }}
+                    resizeHandles={['se']}
+                >
+            <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+                {page.components.map((component, index) => {
+                    const savedPosition = pageLayouts[selectedPage]?.[component.name]?.position || { x: 0, y: 0 };
+
+                    const handlePositionChange = (newPosition) => {
+                        setPageLayouts((prevLayouts) => ({
+                            ...prevLayouts,
+                            [selectedPage]: {
+                                ...prevLayouts[selectedPage],
+                                [component.name]: {
+                                    ...prevLayouts[selectedPage]?.[component.name],
+                                    position: newPosition,
+                                },
+                            },
+                        }));
+                    };
+
+                    return (
                         <DynamicComponentWrapper
                             key={`${component.name}-${index}`}
                             componentCode={component.code}
                             componentName={component.name}
                             componentProps={component.props || {}}
+                            hideDragging={hideDragging}
+                            position={savedPosition}
+                            onPositionChange={handlePositionChange}
                             regenerateComponent={(userModification) =>
                                 generateComponent(
                                     component.name,
                                     `${page.purpose}. ${userModification}`,
                                     JSON.stringify(projectData.styling)
                                 ).then((newComponent) => {
-                                    // Update the component in the project data after regeneration
                                     const updatedPages = projectComponents.pages.map((p) => ({
                                         ...p,
                                         components: p.components.map((c) =>
@@ -416,8 +511,10 @@ export default function ProjectDashboard({ projectData }) {
                                 })
                             }
                         />
-                    ))}
-                </div>
+                    );
+                })}
+            </div>
+            </ResizableBox>
             );
         } else if (viewMode === 'code') {
             return (
@@ -508,69 +605,100 @@ export default function ProjectDashboard({ projectData }) {
                 </div>
             ) : (
                 <>
-                    <div className="tabs flex space-x-4 mb-4">
-                        <button
-                            onClick={() => handleTabChange('pages')}
-                            className={`tab py-2 px-4 rounded ${selectedTab === 'pages' ? 'bg-black text-white' : 'bg-white text-black border border-black'}`}
-                        >
-                            Pages
-                        </button>
-                        <button
-                            onClick={() => handleTabChange('apis')}
-                            className={`tab py-2 px-4 rounded ${selectedTab === 'apis' ? 'bg-black text-white' : 'bg-white text-black border border-black'}`}
-                        >
-                            APIs
-                        </button>
-                        <button
-                            onClick={() => handleTabChange('tables')}
-                            className={`tab py-2 px-4 rounded ${selectedTab === 'tables' ? 'bg-black text-white' : 'bg-white text-black border border-black'}`}
-                        >
-                            Tables
-                        </button>
-                        <button
-                            onClick={handleShowFolderStructure}
-                            className="py-2 px-4 bg-black text-white rounded bg-black"
-                        >
-                            Toggle Folder Structure
-                        </button>
-                        <button
-                            onClick={handleRegenerateHeader} // Add the regenerate Header button
-                            className="py-2 px-4 bg-black text-white rounded bg-black"
-                        >
-                            Regenerate Header
-                        </button>
-                        <button
-                            onClick={() => setShowRegenerateAllDialog(true)}
-                            className="py-2 px-4 bg-black text-white rounded bg-black"
-                        >
-                            Regenerate All Components
-                        </button>
-                    </div>
-
-                    {selectedTab === 'pages' && (
-                        <div>
-                            <div className="page-tabs flex space-x-4 mb-4">
-                                {renderPageTabs()}
-                            </div>
-                            <div className="view-mode-buttons flex space-x-2 mb-4">
-                                <button
-                                    onClick={() => handleViewModeChange('rendered')}
-                                    className={`py-2 px-4 rounded ${viewMode === 'rendered' ? 'bg-blue-900 text-white' : 'bg-white text-black'}`}
-                                >
-                                    Rendered ▤
-                                </button>
-                                <button
-                                    onClick={() => handleViewModeChange('code')}
-                                    className={`py-2 px-4 rounded ${viewMode === 'code' ? 'bg-blue-900 text-white' : 'bg-white text-black'}`}
-                                >
-                                    Code &lt;/&gt;
-                                </button>
-                            </div>
-                            <div className="bg-white p-4 rounded shadow">
-                                {renderComponents()}
-                            </div>
+            <div className="tabs flex justify-center space-x-2 mb-6 relative">
+            <div className="relative">
+                            <button
+                                onClick={() => setShowPagesDropdown((prev) => !prev)}
+                                className={`tab py-1.5 px-4 text-sm font-semibold rounded-full transition-colors duration-200 ${
+                                    selectedTab === 'pages' ? 'bg-black text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                            >
+                                Pages
+                            </button>
+                            {showPagesDropdown && (
+                                <div className="absolute mt-2 w-full bg-white border border-gray-300 rounded shadow-md z-10">
+                                    {projectComponents.pages.map((page, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => handlePageSelect(page.name)}
+                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                                                selectedPage === page.name ? 'bg-gray-200' : ''
+                                            }`}
+                                        >
+                                            {page.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    )}
+
+                <button
+                    onClick={() => handleTabChange('apis')}
+                    className={`tab py-1.5 px-4 text-sm font-semibold rounded-full transition-colors duration-200 ${
+                        selectedTab === 'apis' ? 'bg-black text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                >
+                    APIs
+                </button>
+                <button
+                    onClick={() => handleTabChange('tables')}
+                    className={`tab py-1.5 px-4 text-sm font-semibold rounded-full transition-colors duration-200 ${
+                        selectedTab === 'tables' ? 'bg-black text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                >
+                    Tables
+                </button>
+                <button
+                    onClick={handleShowFolderStructure}
+                    className="py-1.5 px-4 text-sm font-semibold bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors duration-200"
+                >
+                    Toggle Folder Structure
+                </button>
+                <button
+                    onClick={handleRegenerateHeader}
+                    className="py-1.5 px-4 text-sm font-semibold bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors duration-200"
+                >
+                    Regenerate Header
+                </button>
+                <button
+                    onClick={() => setShowRegenerateAllDialog(true)}
+                    className="py-1.5 px-4 text-sm font-semibold bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors duration-200"
+                >
+                    Regenerate All Components
+                </button>
+            </div>
+
+            {/* Render selected tab content */}
+            {selectedTab === 'pages' && (
+                <div>
+                    <div className="page-tabs flex justify-center space-x-4 mb-4">
+                        {renderPageTabs()}
+                    </div>
+                    <div className="view-mode-buttons justify-center flex space-x-2 mb-4">
+                            <button
+                                onClick={() => setViewMode('rendered')}
+                                className={`py-2 px-4 rounded ${viewMode === 'rendered' ? 'bg-blue-900 text-white' : 'bg-white text-black'}`}
+                            >
+                                Rendered ▤
+                            </button>
+                            <button
+                                onClick={() => setViewMode('code')}
+                                className={`py-2 px-4 rounded ${viewMode === 'code' ? 'bg-blue-900 text-white' : 'bg-white text-black'}`}
+                            >
+                                Code &lt;/&gt;
+                            </button>
+                            <button
+                                onClick={() => setHideDragging((prev) => !prev)}
+                                className={`py-2 px-4 rounded ${hideDragging ? 'bg-red-600 text-white' : 'bg-gray-200 text-black'}`}
+                            >
+                                {hideDragging ? 'Show Dragging' : 'Hide Dragging'}
+                            </button>
+                        </div>
+                    <div className="bg-white p-4 rounded shadow">
+                        {renderComponents()}
+                    </div>
+                </div>
+            )}
 
                     {selectedTab === 'apis' && (
                         <div className="bg-white p-4 rounded shadow">
