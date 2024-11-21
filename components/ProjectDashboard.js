@@ -8,9 +8,15 @@ import { ResizableBox } from 'react-resizable';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import GridLayout from 'react-grid-layout'; // Import GridLayout instead of ResponsiveReactGridLayout
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import Sidebar from './Sidebar';
+import DropArea from './DropArea';
+import { ChromePicker } from 'react-color';
 
 //Is okay
 import styled from 'styled-components';
+import { IconAdjustments, IconAdjustmentsOff, IconZoomCodeFilled, IconZoomCode, IconColorPicker, IconColorPickerOff } from '@tabler/icons-react';
 
 //Chakra
 //Thoughts it looks super basic
@@ -33,12 +39,20 @@ import styled from 'styled-components';
 
 export default function ProjectDashboard({ projectData }) {
     const [loading, setLoading] = useState(true);
+    const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+    const [colorPickerVisible, setColorPickerVisible] = useState(false);
     const [pageLayouts, setPageLayouts] = useState({});
     const [gridWidth, setGridWidth] = useState('95vw');
     const [gridHeight, setGridHeight] = useState(600);
     const [layout, setLayout] = useState([]);
     const [hideDragging, setHideDragging] = useState(false);
-    const [projectComponents, setProjectComponents] = useState(null);
+    const [projectComponents, setProjectComponents] = useState({
+        pages: projectData.pages.map((page) => ({
+            ...page,
+            components: [], // Ensure no components are pre-rendered
+        })),
+    });
+    const [droppedComponents, setDroppedComponents] = useState([]); // Track dropped components
     const [showPagesDropdown, setShowPagesDropdown] = useState(false);
     const [selectedTab, setSelectedTab] = useState('pages');
     const [selectedPage, setSelectedPage] = useState(null);
@@ -72,7 +86,21 @@ export default function ProjectDashboard({ projectData }) {
     const [sqlCode, setSqlCode] = useState(''); // New state for SQL code
 
     const initialFolderStructure = useGenerateFolderStructure(projectData, projectComponents, serverlessApis, sqlCode); // Initial folder structure
+      
+      const [availableComponents, setAvailableComponents] = useState([]);
+      const [dropAreaHeight, setDropAreaHeight] = useState(800); // Default height
+      const [isResizing, setIsResizing] = useState(false);
+      const [initialMouseY, setInitialMouseY] = useState(0);
+      const [initialHeight, setInitialHeight] = useState(800); // Match initial dropAreaHeight
+  
+      useEffect(() => {
+        const components = projectComponents.pages.flatMap((page) =>
+          page.components.map((component) => component.name)
+        );
+        setAvailableComponents(components);
+      }, [projectComponents]);
 
+      
     useEffect(() => {
         setFolderStructure(initialFolderStructure);
     }, [initialFolderStructure]);
@@ -81,6 +109,29 @@ export default function ProjectDashboard({ projectData }) {
         setShowFolderStructure(prev => !prev);
     };
 
+    const handleDropComponent = (componentName, offset) => {
+        // Prevent duplicate drops
+        if (droppedComponents.find((comp) => comp.name === componentName)) return;
+      
+        const dropAreaRect = document.getElementById('drop-area').getBoundingClientRect();
+        const x = offset.x - dropAreaRect.left;
+        const y = offset.y - dropAreaRect.top;
+      
+        const componentData = projectComponents.pages
+          .flatMap((page) => page.components)
+          .find((comp) => comp.name === componentName);
+      
+        if (componentData) {
+          const newComponent = {
+            ...componentData,
+            position: { x, y },
+          };
+      
+          setDroppedComponents((prev) => [...prev, newComponent]);
+        }
+      };
+      
+    
     useEffect(() => {
         const generateComponents = async () => {
             try {
@@ -97,17 +148,20 @@ export default function ProjectDashboard({ projectData }) {
                     });
 
                     const componentMap = {};
-                    for (const component of uniqueComponents) {
+                    const componentPromises = Array.from(uniqueComponents).map(async (component) => {
                         updateComponentStatus(component, 'generating');
                         const generatedComponent = await generateComponent(component, JSON.stringify(projectData.styling));
                         componentMap[component] = generatedComponent;
-                    }
+                    });
+
+                    await Promise.all(componentPromises);
 
                     const generatedPages = projectData.pages.map(page => {
                         const generatedComponents = page.components.map(component => componentMap[component]);
                         return { ...page, components: generatedComponents };
                     });
 
+                    console.log(projectComponents)
                     setProjectComponents({
                         ...projectData,
                         pages: generatedPages,
@@ -400,14 +454,27 @@ export default function ProjectDashboard({ projectData }) {
     };
 
     const DynamicComponent = React.memo(({ component }) => {
+        const { code, name } = component;
+      
         try {
-            const Component = new Function('React', 'styled', `return ${component.code}`)(React, styled);
-            return <Component />;
+          // Dynamically create the React component
+          const GeneratedComponent = new Function('React', 'styled', `return ${code}`)(
+            React,
+            styled
+          );
+      
+          // Render the dynamically created component
+          return <GeneratedComponent />;
         } catch (error) {
-            console.error(`Error in DynamicComponent: ${component.name}`, error);
-            throw error;
+          console.error(`Error rendering dynamic component "${name}":`, error);
+          return (
+            <div style={{ color: 'red' }}>
+              Error rendering component: {name}
+            </div>
+          );
         }
-    });
+      });
+      
 
     useEffect(() => {
         if (selectedPage && projectComponents) {
@@ -430,6 +497,37 @@ export default function ProjectDashboard({ projectData }) {
         }
     }, [selectedPage]); // Removed projectComponents from dependencies
     
+    const handleResizeStart = (event) => {
+        setIsResizing(true);
+        setInitialMouseY(event.clientY);
+        setInitialHeight(dropAreaHeight);
+    };
+
+    const handleResizeMove = (event) => {
+        if (isResizing) {
+            const deltaY = event.clientY - initialMouseY;
+            const newHeight = Math.max(300, initialHeight + deltaY); // Minimum height of 300px
+            setDropAreaHeight(newHeight);
+        }
+    };
+
+    const handleResizeStop = () => {
+        setIsResizing(false);
+        // Persist the height if needed
+    };
+
+    useEffect(() => {
+        if (isResizing) {
+            document.addEventListener('mousemove', handleResizeMove);
+            document.addEventListener('mouseup', handleResizeStop);
+        }
+
+        return () => {
+            document.removeEventListener('mousemove', handleResizeMove);
+            document.removeEventListener('mouseup', handleResizeStop);
+        };
+    }, [isResizing, handleResizeMove, handleResizeStop]);
+
     const handleLayoutChange = (newLayout) => {
         setLayout(newLayout);
         const maxHeight = Math.max(...newLayout.map((item) => item.y + item.h)) * 100;
@@ -447,82 +545,143 @@ export default function ProjectDashboard({ projectData }) {
         }
     };
     
+    const handleComponentCodeUpdate = (updatedCode, index) => {
+        setDroppedComponents((prev) =>
+            prev.map((comp, idx) =>
+                idx === index ? { ...comp, code: updatedCode } : comp
+            )
+        );
+    };
     
+    const handleResize = (index, newDimensions) => {
+        setDroppedComponents((prev) =>
+            prev.map((comp, idx) =>
+                idx === index
+                    ? {
+                          ...comp,
+                          dimensions: newDimensions,
+                      }
+                    : comp
+            )
+        );
+    };
+
+    const renderComponentsInDropArea = () => {
+        return droppedComponents.map((component, index) => {
+            try {
+                return (
+                    <DynamicComponentWrapper
+                        key={`${component.name}-${index}`}
+                        position={component.position || { x: 0, y: 0 }}
+                        dimensions={component.dimensions}
+                        componentName={component.name}
+                        hideDragging={hideDragging}
+                        componentCode={component.code}
+                        onComponentCodeUpdate={(updatedCode) => handleComponentCodeUpdate(updatedCode, index)}
+                        onResize={(newDimensions) => handleResize(index, newDimensions)}
+                        onPositionChange={(newPosition) => {
+                            const dropArea = document.getElementById('drop-area');
+                            if (dropArea) {
+                                const dropAreaRect = dropArea.getBoundingClientRect();
+
+                                // Constrain the position within the drop area
+                                const constrainedPosition = {
+                                    x: Math.max(
+                                        0,
+                                        Math.min(newPosition.x, dropAreaRect.width - 100) // Adjust for buffer
+                                    ),
+                                    y: Math.max(
+                                        0,
+                                        Math.min(newPosition.y, dropAreaRect.height - 50) // Adjust for buffer
+                                    ),
+                                };
+
+                                setDroppedComponents((prev) =>
+                                    prev.map((comp, idx) =>
+                                        idx === index
+                                            ? { ...comp, position: constrainedPosition }
+                                            : comp
+                                    )
+                                );
+                            }
+                        }}
+                    />
+                );
+            } catch (error) {
+                console.error(`Error rendering component "${component.name}":`, error);
+                return (
+                    <div key={`${component.name}-${index}`} style={{ color: 'red' }}>
+                        Error rendering component: {component.name}
+                    </div>
+                );
+            }
+        });
+    };
+      
+
     const renderComponents = () => {
         if (!projectComponents?.pages || !selectedPage) return null;
-    
+
         const page = projectComponents.pages.find((p) => p.name === selectedPage);
-    
+
         if (!page || !page.components) return null;
-    
+
         if (viewMode === 'rendered') {
             return (
-                <ResizableBox
-                    width='95vw'
-                    height={gridHeight}
-                    minConstraints={[600, 400]}
-                    maxConstraints={[2000, 2000]}
-                    onResize={(e, data) => {
-                        setGridHeight(data.size.height);
-                    }}
-                    resizeHandles={['se']}
-                >
-            <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
-                {page.components.map((component, index) => {
-                    const savedPosition = pageLayouts[selectedPage]?.[component.name]?.position || { x: 0, y: 0 };
-
-                    const handlePositionChange = (newPosition) => {
-                        setPageLayouts((prevLayouts) => ({
-                            ...prevLayouts,
-                            [selectedPage]: {
-                                ...prevLayouts[selectedPage],
-                                [component.name]: {
-                                    ...prevLayouts[selectedPage]?.[component.name],
-                                    position: newPosition,
-                                },
-                            },
-                        }));
-                    };
-
-                    return (
-                        <DynamicComponentWrapper
-                            key={`${component.name}-${index}`}
-                            componentCode={component.code}
-                            componentName={component.name}
-                            componentProps={component.props || {}}
-                            hideDragging={hideDragging}
-                            position={savedPosition}
-                            onPositionChange={handlePositionChange}
-                            regenerateComponent={(userModification) =>
-                                generateComponent(
-                                    component.name,
-                                    `${page.purpose}. ${userModification}`,
-                                    JSON.stringify(projectData.styling)
-                                ).then((newComponent) => {
-                                    const updatedPages = projectComponents.pages.map((p) => ({
-                                        ...p,
-                                        components: p.components.map((c) =>
-                                            c.name === component.name ? newComponent : c
-                                        ),
-                                    }));
-                                    setProjectComponents({ ...projectComponents, pages: updatedPages });
-                                }).catch(error => {
-                                    console.error(`Error regenerating component '${component.name}':`, error);
-                                })
-                            }
+                <DndProvider backend={HTML5Backend}>
+                    <div style={{ display: 'flex' }}>
+                        {/* Sidebar */}
+                        <Sidebar
+                            availableComponents={availableComponents}
+                            droppedComponents={droppedComponents.map((comp) => comp.name)}
                         />
-                    );
-                })}
-            </div>
-            </ResizableBox>
+
+                        {/* Drop Area */}
+                        <div style={{ flex: 1, position: 'relative' }}>
+                            <DropArea onDropComponent={handleDropComponent}>
+                                <div
+                                    id="drop-area"
+                                    style={{
+                                        width: '100%',
+                                        height: `${dropAreaHeight}px`,
+                                        position: 'relative',
+                                        backgroundColor: backgroundColor,
+                                        border: '1px solid #ddd',
+                                    }}
+                                >
+                                    {renderComponentsInDropArea()}
+                                    {/* Resizable handle */}
+                                    <div
+                                        style={{
+                                            position: 'absolute',
+                                            bottom: 0,
+                                            width: '100%',
+                                            height: '10px',
+                                            backgroundColor: '#ccc',
+                                            cursor: 'row-resize',
+                                        }}
+                                        onMouseDown={handleResizeStart}
+                                    ></div>
+                                </div>
+                            </DropArea>
+                        </div>
+                    </div>
+                </DndProvider>
             );
         } else if (viewMode === 'code') {
             return (
                 <div>
                     {page.components.map((component, index) => (
                         <div key={index} className="component-code">
-                            <p>{component.name} - 
-                                <span className={componentStatus[component.name] === 'success' ? 'text-green-500' : 'text-red-500'}>
+                            <p>
+                                {component.name} -{' '}
+                                <span
+                                    className={
+                                        componentStatus[component.name] === 'success'
+                                            ? 'text-green-500'
+                                            : 'text-red-500'
+                                    }
+                                >
                                     {componentStatus[component.name] || 'Unknown'}
                                 </span>
                             </p>
@@ -534,6 +693,13 @@ export default function ProjectDashboard({ projectData }) {
         }
     };
     
+    const toggleColorPicker = () => {
+        setColorPickerVisible(!colorPickerVisible);
+    };
+
+    const handleColorChange = (color) => {
+        setBackgroundColor(color.hex);
+    };
 
     const renderSQLCode = () => {
         return (
@@ -675,24 +841,25 @@ export default function ProjectDashboard({ projectData }) {
                         {renderPageTabs()}
                     </div>
                     <div className="view-mode-buttons justify-center flex space-x-2 mb-4">
-                            <button
-                                onClick={() => setViewMode('rendered')}
-                                className={`py-2 px-4 rounded ${viewMode === 'rendered' ? 'bg-blue-900 text-white' : 'bg-white text-black'}`}
-                            >
-                                Rendered ▤
-                            </button>
-                            <button
-                                onClick={() => setViewMode('code')}
-                                className={`py-2 px-4 rounded ${viewMode === 'code' ? 'bg-blue-900 text-white' : 'bg-white text-black'}`}
-                            >
-                                Code &lt;/&gt;
-                            </button>
+                    <button 
+    onClick={() => setViewMode(viewMode === 'code' ? 'rendered' : 'code')}
+    title={viewMode === 'code' ? 'Switch to Rendered View' : 'Switch to Code View'}
+>
+    {viewMode === 'code' ? <IconZoomCodeFilled size={24} /> : <IconZoomCode size={24} />}
+</button>
                             <button
                                 onClick={() => setHideDragging((prev) => !prev)}
-                                className={`py-2 px-4 rounded ${hideDragging ? 'bg-red-600 text-white' : 'bg-gray-200 text-black'}`}
                             >
-                                {hideDragging ? 'Show Dragging' : 'Hide Dragging'}
+                                {hideDragging ? <IconAdjustmentsOff/> : <IconAdjustments/>}
                             </button>
+                            <button onClick={toggleColorPicker} style={{ margin: '10px' }}>
+                {colorPickerVisible ? <IconColorPicker/> : <IconColorPickerOff/>}
+            </button>
+            {colorPickerVisible && (
+                <div style={{ position: 'absolute', top:20, zIndex: 1000 }}>
+                    <ChromePicker color={backgroundColor} onChange={handleColorChange} />
+                </div>
+            )}                            
                         </div>
                     <div className="bg-white p-4 rounded shadow">
                         {renderComponents()}

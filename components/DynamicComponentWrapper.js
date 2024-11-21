@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled from 'styled-components';
-import { IconSettings } from '@tabler/icons-react';
+import { IconArrowsMaximize, IconSettings } from '@tabler/icons-react';
 import ErrorBoundary from './ErrorBoundary';
 
 const Wrapper = styled.div`
@@ -10,8 +10,23 @@ const Wrapper = styled.div`
     flex-direction: column;
     align-items: center;
     position: absolute;
+    height: ${({ dimensions }) => `${dimensions.height}px`};
+    width: ${({ dimensions }) => `${dimensions.width}px`};    
     left: ${({ position }) => `${position.x}px`};
     top: ${({ position }) => `${position.y}px`};
+    box-sizing: border-box;
+`;
+
+const ComponentContainer = styled.div`
+    max-width: ${({ maxWidth }) => `${maxWidth}px`};
+    max-height: ${({ maxHeight }) => `${maxHeight}px`};
+    transform: ${({ scale }) => `scale(${scale})`};
+    transform-origin: top left;
+`;
+
+const ComponentContent = styled.div`
+    width: auto;
+    height: auto;
 `;
 
 const DragHandleBar = styled.div`
@@ -29,6 +44,19 @@ const DragHandleBar = styled.div`
     .gear-icon {
         cursor: pointer;
     }
+`;
+
+const ResizeHandle = styled.div`
+    position: absolute;
+    background-color: rgba(0,0,0,0.5);
+    color: white;
+    cursor: nwse-resize;
+    padding: 15px 5px 5px 15px;
+    bottom: -22px;
+    border-radius:0%;
+    border-top-left-radius:100%;
+    right: -2px;
+    display: ${({ hideDragging }) => (hideDragging ? 'none' : 'flex')};
 `;
 
 const Dropdown = styled.div`
@@ -60,14 +88,21 @@ const DynamicComponentWrapper = ({
     regenerateComponent,
     componentProps = {},
     hideDragging,
+    dimensions: initialDimensions = null,    
     position = { x: 0, y: 0 },
     onPositionChange,
+    onComponentCodeUpdate,
+    onResize,
 }) => {
     const [Component, setComponent] = useState(null);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [dragging, setDragging] = useState(false);
+    const [dimensions, setDimensions] = useState(initialDimensions || { width: 200, height: 100 });
+    const [resizing, setResizing] = useState(false);
     const [initialMousePosition, setInitialMousePosition] = useState(null);
     const [initialComponentPosition, setInitialComponentPosition] = useState(null);
+    const [initialComponentDimensions, setInitialComponentDimensions] = useState(initialDimensions);
+    const componentRef = useRef(null);
 
     useEffect(() => {
         try {
@@ -79,6 +114,23 @@ const DynamicComponentWrapper = ({
         }
     }, [componentCode, componentName]);
 
+    useEffect(() => {
+        // Measure the rendered component dimensions if not provided initially
+        if (!initialDimensions && componentRef.current) {
+            const { offsetWidth, offsetHeight } = componentRef.current;
+            const measuredDimensions = {
+                width: offsetWidth || 200,
+                height: offsetHeight || 100,
+            };
+
+            setDimensions(measuredDimensions);
+
+            if (onResize) {
+                onResize(measuredDimensions); // Persist dimensions to parent
+            }
+        }
+    }, [initialDimensions, onResize]);
+
     const handleMouseDown = (event) => {
         if (hideDragging) return;
         event.preventDefault();
@@ -89,26 +141,66 @@ const DynamicComponentWrapper = ({
 
     const handleMouseMove = useCallback(
         (event) => {
-            if (!dragging) return;
-            const deltaX = event.clientX - initialMousePosition.x;
-            const deltaY = event.clientY - initialMousePosition.y;
-            const newPosition = {
-                x: initialComponentPosition.x + deltaX,
-                y: initialComponentPosition.y + deltaY,
-            };
-            onPositionChange(newPosition);
+            const dropArea = document.getElementById('drop-area');
+            const dropAreaRect = dropArea.getBoundingClientRect();
+
+            if (dragging) {
+                const deltaX = event.clientX - initialMousePosition.x;
+                const deltaY = event.clientY - initialMousePosition.y;
+                const newPosition = {
+                    x: Math.max(
+                        0,
+                        Math.min(initialComponentPosition.x + deltaX, dropAreaRect.width - dimensions.width)
+                    ),
+                    y: Math.max(
+                        0,
+                        Math.min(
+                            initialComponentPosition.y + deltaY,
+                            dropAreaRect.height - dimensions.height - 22
+                        )
+                    ),
+                };
+                onPositionChange(newPosition);
+            }
+            if (resizing) {
+                const deltaX = event.clientX - initialMousePosition.x;
+                const deltaY = event.clientY - initialMousePosition.y;
+                const newDimensions = {
+                    width: Math.max(50, initialComponentDimensions.width + deltaX),
+                    height: Math.max(50, initialComponentDimensions.height + deltaY),
+                };
+
+                setDimensions(newDimensions);
+                if (onResize) {
+                    onResize(newDimensions); // Update dimensions in the parent state
+                }
+
+                // Update component code if necessary
+                const updatedCode = updateComponentCode(componentCode, newDimensions.width, newDimensions.height);
+                if (onComponentCodeUpdate) {
+                    onComponentCodeUpdate(updatedCode);
+                }
+            }
         },
-        [dragging, initialMousePosition, initialComponentPosition, onPositionChange]
+        [
+            dragging,
+            resizing,
+            initialMousePosition,
+            initialComponentPosition,
+            initialComponentDimensions,
+            onResize,
+            onComponentCodeUpdate,
+            componentCode,
+        ]
     );
 
     const handleMouseUp = useCallback(() => {
-        if (dragging) {
-            setDragging(false);
-        }
-    }, [dragging]);
+        setDragging(false);
+        setResizing(false);
+    }, []);
 
     useEffect(() => {
-        if (dragging) {
+        if (dragging || resizing) {
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
             return () => {
@@ -116,7 +208,14 @@ const DynamicComponentWrapper = ({
                 document.removeEventListener('mouseup', handleMouseUp);
             };
         }
-    }, [dragging, handleMouseMove, handleMouseUp]);
+    }, [dragging, resizing, handleMouseMove, handleMouseUp]);
+
+    const handleResizeMouseDown = (event) => {
+        event.preventDefault();
+        setResizing(true);
+        setInitialMousePosition({ x: event.clientX, y: event.clientY });
+        setInitialComponentDimensions(dimensions);
+    };
 
     const handleRegenerate = () => {
         const userModification = prompt(`Provide details for modifying "${componentName}"`);
@@ -127,8 +226,50 @@ const DynamicComponentWrapper = ({
         }
     };
 
+    // Utility to update component.code dynamically with new width and height
+    const updateComponentCode = (code, width, height) => {
+        try {
+          // Find the first styled.div block and append width and height to it
+          return code.replace(
+            /styled\.div`([^`]*)`/, // Regex to match the first styled.div
+            (match, styles) => {
+              // Check if the styles already have width/height defined
+              const updatedStyles = styles
+                .replace(/width:.*?;/, '') // Remove existing width if present
+                .replace(/height:.*?;/, ''); // Remove existing height if present
+      
+              // Append the new width and height
+              return `styled.div\`${updatedStyles} width: ${width}px; height: ${height}px;\``;
+            }
+          );
+        } catch (error) {
+          console.error('Error updating component code:', error);
+          return code; // Return the original code in case of error
+        }
+      };
+      
+      const handleResizeStop = (e, data) => {
+        const newDimensions = { width: data.size.width, height: data.size.height };
+
+        // Update dimensions in the parent state
+        if (onResize) {
+            onResize(newDimensions);
+        }
+
+        // Update the component code if necessary
+        if (onComponentCodeUpdate) {
+            const updatedCode = updateComponentCode(componentCode, newDimensions.width, newDimensions.height);
+            onComponentCodeUpdate(updatedCode);
+        }
+    };
+
     return (
-        <Wrapper hideDragging={hideDragging} position={position}>
+        <Wrapper
+            hideDragging={hideDragging}
+            position={position}
+            dimensions={dimensions}
+            onResizeStop={handleResizeStop}
+        >
             <DragHandleBar
                 className="component-drag-handle"
                 hideDragging={hideDragging}
@@ -146,10 +287,23 @@ const DynamicComponentWrapper = ({
                 <RegenerateButton onClick={handleRegenerate}>Regenerate</RegenerateButton>
             </Dropdown>
             <ErrorBoundary>
-                {Component ? <Component {...componentProps} /> : <div>Loading {componentName}...</div>}
+                {Component ? (
+                    <ComponentContainer
+                        style={{
+                            width: `${dimensions.width}px`,
+                            height: `${dimensions.height}px`,
+                        }}
+                    >
+                        <Component {...componentProps} />
+                        <ResizeHandle onMouseDown={handleResizeMouseDown} hideDragging={hideDragging}><IconArrowsMaximize size={18}/></ResizeHandle>
+                    </ComponentContainer>
+                ) : (
+                    <div style={{ color: 'gray' }}>Loading component: {componentName}...</div>
+                )}
             </ErrorBoundary>
         </Wrapper>
     );
 };
+
 
 export default DynamicComponentWrapper;
