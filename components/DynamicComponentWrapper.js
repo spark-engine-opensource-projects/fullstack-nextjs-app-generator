@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled from 'styled-components';
-import { IconArrowsMaximize, IconSettings } from '@tabler/icons-react';
+import { IconArrowsMaximize, IconSettings, IconReload, IconX } from '@tabler/icons-react';
 import ErrorBoundary from './ErrorBoundary';
 
 const Wrapper = styled.div`
@@ -71,7 +71,7 @@ const Dropdown = styled.div`
     display: ${({ isOpen }) => (isOpen ? 'block' : 'none')};
 `;
 
-const RegenerateButton = styled.button`
+const BaseButton = styled.button`
     margin-top: 5px;
     padding: 6px 12px;
     background-color: #fbfbfb;
@@ -80,7 +80,14 @@ const RegenerateButton = styled.button`
     cursor: pointer;
     border: 1px solid #ddd;
     width: 100%;
+    display: flex; /* Use flexbox for alignment */
+    align-items: center; /* Align items vertically */
+    
+    & > svg {
+        margin-left: 8px; /* Add spacing between text and icon */
+    }
 `;
+
 
 const DynamicComponentWrapper = ({
     componentCode,
@@ -93,6 +100,7 @@ const DynamicComponentWrapper = ({
     onPositionChange,
     onComponentCodeUpdate,
     onResize,
+    onRemove,
 }) => {
     const [Component, setComponent] = useState(null);
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -263,6 +271,13 @@ const DynamicComponentWrapper = ({
         }
     };
 
+    const handleRemoveComponent = () => {
+        setDropdownOpen(false);
+        if (onRemove) {
+            onRemove();
+        }
+    };
+
     return (
         <Wrapper
             hideDragging={hideDragging}
@@ -284,7 +299,8 @@ const DynamicComponentWrapper = ({
             </DragHandleBar>
             <Dropdown isOpen={dropdownOpen}>
                 <div>{componentName}</div>
-                <RegenerateButton onClick={handleRegenerate}>Regenerate</RegenerateButton>
+                <BaseButton onClick={handleRegenerate}><IconReload size={14}/><p style={{marginLeft:5}}>Regenerate</p></BaseButton>
+                <BaseButton onClick={handleRemoveComponent}><IconX size={14}/><p style={{marginLeft:5}}>Remove</p></BaseButton>
             </Dropdown>
             <ErrorBoundary>
                 {Component ? (

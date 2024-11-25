@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { generateDynamicallyRenderingReactComponent, generateServerlessApi, generateSQLDatabaseQuery } from '../utils/api';
 import ErrorBoundary from './ErrorBoundary';
 import ProjectFolderStructure from './ProjectFolderStructure';
@@ -109,65 +109,73 @@ export default function ProjectDashboard({ projectData }) {
         setShowFolderStructure(prev => !prev);
     };
 
-    const handleDropComponent = (componentName, offset) => {
-        // Prevent duplicate drops
-        if (droppedComponents.find((comp) => comp.name === componentName)) return;
+    const handleDropComponent = useCallback(
+        (componentName, offset) => {
+          console.log('Dropping component:', componentName, 'on page:', selectedPage);
       
-        const dropAreaRect = document.getElementById('drop-area').getBoundingClientRect();
-        const x = offset.x - dropAreaRect.left;
-        const y = offset.y - dropAreaRect.top;
+          const dropAreaRect = document
+            .getElementById('drop-area')
+            .getBoundingClientRect();
+          const x = offset.x - dropAreaRect.left;
+          const y = offset.y - dropAreaRect.top;
       
-        const componentData = projectComponents.pages
-          .flatMap((page) => page.components)
-          .find((comp) => comp.name === componentName);
+          // Find component data
+          const componentData = projectComponents.pages
+            .flatMap((page) => page.components)
+            .find((comp) => comp.name === componentName);
       
-        if (componentData) {
-          const newComponent = {
-            ...componentData,
-            position: { x, y },
-          };
+          if (componentData) {
+            const newComponent = {
+              ...componentData,
+              position: { x, y },
+              page: selectedPage, // Use the current selectedPage here
+            };
       
-          setDroppedComponents((prev) => [...prev, newComponent]);
-        }
-      };
+            console.log('New component added:', newComponent);
       
+            setDroppedComponents((prev) => [...prev, newComponent]);
+          } else {
+            console.error('Component data not found for:', componentName);
+          }
+        },
+        [selectedPage, projectComponents] // Dependencies
+      );
     
     useEffect(() => {
         const generateComponents = async () => {
             try {
                 if (projectData.pages && projectData.pages.length > 0) {
-                    if (!selectedPage) {
+                    if (selectedPage === '' || selectedPage === null) {
                         setSelectedPage(projectData.pages[0].name);
                     }
-
+    
                     const uniqueComponents = new Set();
                     projectData.pages.forEach(page => {
                         page.components.forEach(component => {
                             uniqueComponents.add(component);
                         });
                     });
-
+    
                     const componentMap = {};
                     const componentPromises = Array.from(uniqueComponents).map(async (component) => {
                         updateComponentStatus(component, 'generating');
                         const generatedComponent = await generateComponent(component, JSON.stringify(projectData.styling));
                         componentMap[component] = generatedComponent;
                     });
-
+    
                     await Promise.all(componentPromises);
-
+    
                     const generatedPages = projectData.pages.map(page => {
                         const generatedComponents = page.components.map(component => componentMap[component]);
                         return { ...page, components: generatedComponents };
                     });
-
-                    console.log(projectComponents)
+    
                     setProjectComponents({
                         ...projectData,
                         pages: generatedPages,
                     });
                 }
-
+    
                 if (projectData.apis && projectData.apis.length > 0) {
                     const generatedApis = await Promise.all(
                         projectData.apis.map(async (api, index) => {
@@ -179,8 +187,7 @@ export default function ProjectDashboard({ projectData }) {
                     );
                     setServerlessApis(generatedApis);
                 }
-
-                // Generate the SQL code for the database schema
+    
                 if (projectData.databaseSchema) {
                     setSqlStatus('generating');
                     const generatedSQL = await generateSQLDatabaseQuery(JSON.stringify(projectData.databaseSchema));
@@ -194,9 +201,11 @@ export default function ProjectDashboard({ projectData }) {
                 setLoading(false);
             }
         };
-
+    
         generateComponents();
-    }, [projectData]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    
 
     const updateComponentStatus = (componentName, status) => {
         setComponentStatus(prevStatus => ({
@@ -417,6 +426,7 @@ export default function ProjectDashboard({ projectData }) {
 
     const handlePageChange = (page) => {
         setSelectedPage(page);
+        console.log(page)
     };
 
     const handlePageSelect = (pageName) => {
@@ -424,19 +434,26 @@ export default function ProjectDashboard({ projectData }) {
             setPageLayouts((prevLayouts) => ({
                 ...prevLayouts,
                 [selectedPage]: {
-                    ...prevLayouts[selectedPage],
                     layout,
-                    gridWidth,
                     gridHeight,
                 },
             }));
         }
+    
+        const savedPageData = pageLayouts[pageName];
+        if (savedPageData) {
+            setLayout(savedPageData.layout || []);
+            setGridHeight(savedPageData.gridHeight || 600);
+        } else {
+            setLayout([]);
+            setGridHeight(600);
+        }
+    
         setSelectedPage(pageName);
         setSelectedTab('pages');
         setShowPagesDropdown(false);
     };
     
-
     const handleViewModeChange = (mode) => {
         setViewMode(mode);
     };
@@ -445,7 +462,7 @@ export default function ProjectDashboard({ projectData }) {
         return projectComponents?.pages?.map((page) => (
             <button
                 key={page.name}
-                onClick={() => handlePageChange(page.name)}
+                onClick={() => handlePageSelect(page.name)}
                 className={`tab ${selectedPage === page.name ? 'tab-active' : ''}`}
             >
                 {page.name}
@@ -475,14 +492,19 @@ export default function ProjectDashboard({ projectData }) {
         }
       });
       
-
-    useEffect(() => {
-        if (selectedPage && projectComponents) {
+      useEffect(() => {
+        if (selectedPage) {
             const savedPageData = pageLayouts[selectedPage];
-            if (savedPageData && savedPageData.layout) {
-                setLayout(savedPageData.layout);
-                setGridHeight(savedPageData.gridHeight || 600);
-            } else if (layout.length === 0) {
+            if (savedPageData) {
+                if (
+                    JSON.stringify(layout) !== JSON.stringify(savedPageData.layout) ||
+                    gridHeight !== (savedPageData.gridHeight || 600)
+                ) {
+                    setLayout(savedPageData.layout || []);
+                    setGridHeight(savedPageData.gridHeight || 600);
+                }
+            } else {
+                // Initialize layout for new page
                 const defaultLayout = projectComponents.pages
                     .find((p) => p.name === selectedPage)
                     ?.components.map((component, index) => ({
@@ -492,10 +514,14 @@ export default function ProjectDashboard({ projectData }) {
                         w: 2,
                         h: 2,
                     })) || [];
-                setLayout(defaultLayout);
+    
+                if (JSON.stringify(layout) !== JSON.stringify(defaultLayout)) {
+                    setLayout(defaultLayout);
+                }
             }
         }
-    }, [selectedPage]); // Removed projectComponents from dependencies
+    }, [selectedPage, pageLayouts, layout, gridHeight, projectComponents.pages]);
+    
     
     const handleResizeStart = (event) => {
         setIsResizing(true);
@@ -513,7 +539,10 @@ export default function ProjectDashboard({ projectData }) {
 
     const handleResizeStop = () => {
         setIsResizing(false);
-        // Persist the height if needed
+    };
+
+    const handleRemoveComponentInstance = (index) => {
+        setDroppedComponents((prev) => prev.filter((_, i) => i !== index));
     };
 
     useEffect(() => {
@@ -537,7 +566,6 @@ export default function ProjectDashboard({ projectData }) {
             setPageLayouts((prevLayouts) => ({
                 ...prevLayouts,
                 [selectedPage]: {
-                    ...prevLayouts[selectedPage],
                     layout: newLayout,
                     gridHeight: maxHeight + 100,
                 },
@@ -567,7 +595,12 @@ export default function ProjectDashboard({ projectData }) {
     };
 
     const renderComponentsInDropArea = () => {
-        return droppedComponents.map((component, index) => {
+        // Filter components by the currently selected page
+        const activePageComponents = droppedComponents.filter(
+            (comp) => comp.page === selectedPage // Ensure only components for the selected page are displayed
+        );
+    
+        return activePageComponents.map((component, index) => {
             try {
                 return (
                     <DynamicComponentWrapper
@@ -579,11 +612,12 @@ export default function ProjectDashboard({ projectData }) {
                         componentCode={component.code}
                         onComponentCodeUpdate={(updatedCode) => handleComponentCodeUpdate(updatedCode, index)}
                         onResize={(newDimensions) => handleResize(index, newDimensions)}
+                        onRemove={() => handleRemoveComponentInstance(index)}
                         onPositionChange={(newPosition) => {
                             const dropArea = document.getElementById('drop-area');
                             if (dropArea) {
                                 const dropAreaRect = dropArea.getBoundingClientRect();
-
+    
                                 // Constrain the position within the drop area
                                 const constrainedPosition = {
                                     x: Math.max(
@@ -595,7 +629,7 @@ export default function ProjectDashboard({ projectData }) {
                                         Math.min(newPosition.y, dropAreaRect.height - 50) // Adjust for buffer
                                     ),
                                 };
-
+    
                                 setDroppedComponents((prev) =>
                                     prev.map((comp, idx) =>
                                         idx === index
@@ -617,7 +651,7 @@ export default function ProjectDashboard({ projectData }) {
             }
         });
     };
-      
+    
 
     const renderComponents = () => {
         if (!projectComponents?.pages || !selectedPage) return null;
@@ -638,8 +672,8 @@ export default function ProjectDashboard({ projectData }) {
 
                         {/* Drop Area */}
                         <div style={{ flex: 1, position: 'relative' }}>
-                            <DropArea onDropComponent={handleDropComponent}>
-                                <div
+                        <DropArea onDropComponent={handleDropComponent} selectedPage={selectedPage}>
+                <div
                                     id="drop-area"
                                     style={{
                                         width: '100%',
@@ -861,9 +895,11 @@ export default function ProjectDashboard({ projectData }) {
                 </div>
             )}                            
                         </div>
+                        {!showFolderStructure && (
                     <div className="bg-white p-4 rounded shadow">
-                        {renderComponents()}
+                             {renderComponents()}
                     </div>
+                    )}
                 </div>
             )}
 
@@ -969,13 +1005,31 @@ export default function ProjectDashboard({ projectData }) {
                         </div>
                     )}
 
-                    {showFolderStructure && (
-                        folderStructure ? (
-                            <ProjectFolderStructure structure={folderStructure} projectData={projectData} sqlCode={sqlCode} /> // Pass SQL code
-                        ) : (
-                            <div>Unable to generate folder structure. Please check the project data.</div>
-                        )
-                    )}
+{showFolderStructure && (
+    <div
+        style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '70vh',
+            padding:'20px',
+            backgroundColor:'#fff',
+            borderRadius:'7px',
+            marginTop:'5px'
+        }}
+    >
+        {folderStructure ? (
+            <ProjectFolderStructure
+                structure={folderStructure}
+                projectData={projectData}
+                sqlCode={sqlCode}
+            />
+        ) : (
+            <div>Unable to generate folder structure. Please check the project data.</div>
+        )}
+    </div>
+)}
+
 
                     {showPromptDialog && (
                         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">

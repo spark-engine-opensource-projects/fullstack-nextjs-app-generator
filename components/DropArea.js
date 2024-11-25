@@ -1,33 +1,40 @@
-// DropArea.js
 import React from 'react';
 import { useDrop } from 'react-dnd';
 
-const DropArea = ({ onDropComponent, children }) => {
-  const [{ isOver }, drop] = useDrop(() => ({
-    accept: 'COMPONENT',
-    drop: (item, monitor) => {
-      const offset = monitor.getClientOffset();
-      onDropComponent(item.componentName, offset);
-    },
-    collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
-    }),
-  }));
+const DropArea = ({ onDropComponent, selectedPage, children }) => {
+    const [{ isOver }, dropRef] = useDrop(
+        () => ({
+            accept: 'COMPONENT',
+            drop: (item, monitor) => {
+                console.log('Dropped Item:', item, 'on page:', selectedPage);
+                const offset = monitor.getClientOffset();
+                if (item && item.componentName) {
+                    onDropComponent(item.componentName, offset);
+                } else {
+                    console.error('Dropped item missing componentName:', item);
+                }
+            },
+            collect: (monitor) => ({
+                isOver: !!monitor.isOver(),
+            }),
+        }),
+        [selectedPage, onDropComponent] // Add dependencies here
+    );
 
-  return (
-    <div
-      ref={drop}
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        border: '1px solid #ccc',
-        background: isOver ? '#e6f7ff' : '#fff',
-      }}
-    >
-      {children}
-    </div>
-  );
+    return (
+        <div
+            ref={dropRef}
+            style={{
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+                border: '1px solid #ccc',
+                background: isOver ? '#e6f7ff' : '#fff',
+            }}
+        >
+            {children}
+        </div>
+    );
 };
 
 export default DropArea;

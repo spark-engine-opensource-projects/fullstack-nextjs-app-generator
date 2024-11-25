@@ -334,9 +334,9 @@ const ProjectFolderStructure = ({ structure, projectData, sqlCode }) => {
 
     return (
         <div className="folder-structure">
-            <h3>Project Folder Structure</h3>
-
-            <div style={{ marginBottom: '20px' }}>
+            <h3 style={{fontWeight:500, marginBottom:'10px'}}>Project Folder Structure</h3>
+        <hr></hr>
+            <div style={{ marginBottom: '20px', marginTop:'15px' }}>
                 <label style={{ marginRight: '10px' }}>Vercel Project Name:</label>
                 <input
                     type="text"
@@ -387,13 +387,14 @@ const ProjectFolderStructure = ({ structure, projectData, sqlCode }) => {
             <div style={{ marginTop: '20px' }}>
                 <button
                     onClick={handleDeploy}
-                    className={`btn py-2 px-4 ${deploying ? 'bg-gray-500' : 'bg-green-500'} text-white rounded`}
+                    className={`py-2 px-4 ${deploying ? 'bg-gray-500' : 'bg-green-500'} text-white rounded`}
                     disabled={
                         deploying ||
                         requiredEnvVars.some((key) => !envVariables[key]) ||
                         !keys.SUPABASE_DB_URL ||
                         !keys.VERCEL_TOKEN
                     }
+                    style={{cursor:'pointer'}}
                 >
                     {deploying ? 'Deploying...' : 'Deploy Project'}
                 </button>
@@ -401,7 +402,8 @@ const ProjectFolderStructure = ({ structure, projectData, sqlCode }) => {
 
                 <button
                     onClick={handleDownload}
-                    className="btn py-2 px-4 bg-blue-500 text-white rounded ml-4"
+                    className="py-2 px-4 bg-blue-500 text-white rounded ml-4"
+                    style={{cursor:'pointer'}}
                 >
                     Download Project
                 </button>

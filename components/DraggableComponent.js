@@ -2,10 +2,11 @@ import React from 'react';
 import { useDrag } from 'react-dnd';
 
 const DraggableComponent = ({ componentName, disabled }) => {
+
     const [{ isDragging }, drag] = useDrag(
         () => ({
             type: 'COMPONENT',
-            item: { componentName },
+            item: { componentName }, // Ensure this matches projectComponents
             canDrag: !disabled, // Prevent dragging if disabled
             collect: (monitor) => ({
                 isDragging: !!monitor.isDragging(),
