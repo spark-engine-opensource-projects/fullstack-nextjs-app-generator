@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { generateDynamicallyRenderingReactComponent, generateServerlessApi, generateSQLDatabaseQuery } from '../utils/api';
 import ErrorBoundary from './ErrorBoundary';
 import ProjectFolderStructure from './ProjectFolderStructure';
@@ -16,7 +17,7 @@ import { ChromePicker } from 'react-color';
 
 //Is okay
 import styled from 'styled-components';
-import { IconAdjustments, IconAdjustmentsOff, IconZoomCodeFilled, IconZoomCode, IconColorPicker, IconColorPickerOff } from '@tabler/icons-react';
+import { IconFoldDown, IconAdjustments, IconAdjustmentsOff, IconZoomCodeFilled, IconZoomCode, IconColorPicker, IconColorPickerOff } from '@tabler/icons-react';
 
 //Chakra
 //Thoughts it looks super basic
@@ -127,8 +128,10 @@ export default function ProjectDashboard({ projectData }) {
           if (componentData) {
             const newComponent = {
               ...componentData,
+              id: uuidv4(), // Assign a unique ID
               position: { x, y },
-              page: selectedPage, // Use the current selectedPage here
+              dimensions: { width: 500, height: 300 },
+              page: selectedPage,
             };
       
             console.log('New component added:', newComponent);
@@ -138,8 +141,9 @@ export default function ProjectDashboard({ projectData }) {
             console.error('Component data not found for:', componentName);
           }
         },
-        [selectedPage, projectComponents] // Dependencies
+        [selectedPage, projectComponents]
       );
+      
     
     useEffect(() => {
         const generateComponents = async () => {
@@ -541,9 +545,10 @@ export default function ProjectDashboard({ projectData }) {
         setIsResizing(false);
     };
 
-    const handleRemoveComponentInstance = (index) => {
-        setDroppedComponents((prev) => prev.filter((_, i) => i !== index));
-    };
+    const handleRemoveComponentInstance = (id) => {
+        setDroppedComponents((prev) => prev.filter((comp) => comp.id !== id));
+      };
+      
 
     useEffect(() => {
         if (isResizing) {
@@ -581,76 +586,73 @@ export default function ProjectDashboard({ projectData }) {
         );
     };
     
-    const handleResize = (index, newDimensions) => {
+    const handleResize = (id, newDimensions) => {
         setDroppedComponents((prev) =>
-            prev.map((comp, idx) =>
-                idx === index
-                    ? {
-                          ...comp,
-                          dimensions: newDimensions,
-                      }
-                    : comp
-            )
+          prev.map((comp) =>
+            comp.id === id
+              ? {
+                  ...comp,
+                  dimensions: newDimensions,
+                }
+              : comp
+          )
         );
-    };
+      };      
 
     const renderComponentsInDropArea = () => {
-        // Filter components by the currently selected page
         const activePageComponents = droppedComponents.filter(
-            (comp) => comp.page === selectedPage // Ensure only components for the selected page are displayed
+          (comp) => comp.page === selectedPage
         );
-    
-        return activePageComponents.map((component, index) => {
-            try {
-                return (
-                    <DynamicComponentWrapper
-                        key={`${component.name}-${index}`}
-                        position={component.position || { x: 0, y: 0 }}
-                        dimensions={component.dimensions}
-                        componentName={component.name}
-                        hideDragging={hideDragging}
-                        componentCode={component.code}
-                        onComponentCodeUpdate={(updatedCode) => handleComponentCodeUpdate(updatedCode, index)}
-                        onResize={(newDimensions) => handleResize(index, newDimensions)}
-                        onRemove={() => handleRemoveComponentInstance(index)}
-                        onPositionChange={(newPosition) => {
-                            const dropArea = document.getElementById('drop-area');
-                            if (dropArea) {
-                                const dropAreaRect = dropArea.getBoundingClientRect();
-    
-                                // Constrain the position within the drop area
-                                const constrainedPosition = {
-                                    x: Math.max(
-                                        0,
-                                        Math.min(newPosition.x, dropAreaRect.width - 100) // Adjust for buffer
-                                    ),
-                                    y: Math.max(
-                                        0,
-                                        Math.min(newPosition.y, dropAreaRect.height - 50) // Adjust for buffer
-                                    ),
-                                };
-    
-                                setDroppedComponents((prev) =>
-                                    prev.map((comp, idx) =>
-                                        idx === index
-                                            ? { ...comp, position: constrainedPosition }
-                                            : comp
-                                    )
-                                );
-                            }
-                        }}
-                    />
-                );
-            } catch (error) {
-                console.error(`Error rendering component "${component.name}":`, error);
-                return (
-                    <div key={`${component.name}-${index}`} style={{ color: 'red' }}>
-                        Error rendering component: {component.name}
-                    </div>
-                );
-            }
+      
+        return activePageComponents.map((component) => {
+          try {
+            return (
+              <DynamicComponentWrapper
+                key={component.id}
+                componentId={component.id}
+                position={component.position || { x: 0, y: 0 }}
+                dimensions={component.dimensions}
+                componentName={component.name}
+                hideDragging={hideDragging}
+                componentCode={component.code}
+                onComponentCodeUpdate={(updatedCode) => handleComponentCodeUpdate(updatedCode, component.id)}
+                onResize={(newDimensions) => handleResize(component.id, newDimensions)}
+                onRemove={() => handleRemoveComponentInstance(component.id)}
+                onPositionChange={(newPosition) => {
+                  const dropArea = document.getElementById('drop-area');
+                  if (dropArea) {
+                    const dropAreaRect = dropArea.getBoundingClientRect();
+                    const constrainedPosition = {
+                      x: Math.max(
+                        0,
+                        Math.min(newPosition.x, dropAreaRect.width - 100)
+                      ),
+                      y: Math.max(
+                        0,
+                        Math.min(newPosition.y, dropAreaRect.height - 50)
+                      ),
+                    };
+                    setDroppedComponents((prev) =>
+                      prev.map((comp) =>
+                        comp.id === component.id
+                          ? { ...comp, position: constrainedPosition }
+                          : comp
+                      )
+                    );
+                  }
+                }}
+              />
+            );
+          } catch (error) {
+            console.error(`Error rendering component "${component.name}":`, error);
+            return (
+              <div key={component.id} style={{ color: 'red' }}>
+                Error rendering component: {component.name}
+              </div>
+            );
+          }
         });
-    };
+      };
     
 
     const renderComponents = () => {
@@ -689,13 +691,19 @@ export default function ProjectDashboard({ projectData }) {
                                         style={{
                                             position: 'absolute',
                                             bottom: 0,
+                                            display: 'flex',
                                             width: '100%',
-                                            height: '10px',
-                                            backgroundColor: '#ccc',
+                                            height: '15px',
+                                            backgroundColor: '#ddd',
                                             cursor: 'row-resize',
+                                            userSelect: 'none',
+                                            alignContent: 'center',
+                                            justifyContent: 'center',
+                                            padding: '5px',
+                                            color: 'white'
                                         }}
                                         onMouseDown={handleResizeStart}
-                                    ></div>
+                                    ><IconFoldDown size={18}/></div>
                                 </div>
                             </DropArea>
                         </div>
@@ -816,7 +824,7 @@ export default function ProjectDashboard({ projectData }) {
                                 Pages
                             </button>
                             {showPagesDropdown && (
-                                <div className="absolute mt-2 w-full bg-white border border-gray-300 rounded shadow-md z-10">
+                                <div className="absolute mt-2 w-64 bg-white border border-gray-300 rounded shadow-md z-10">
                                     {projectComponents.pages.map((page, index) => (
                                         <button
                                             key={index}

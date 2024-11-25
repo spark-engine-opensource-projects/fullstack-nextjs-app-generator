@@ -13,7 +13,7 @@ const Wrapper = styled.div`
     height: ${({ dimensions }) => `${dimensions.height}px`};
     width: ${({ dimensions }) => `${dimensions.width}px`};    
     left: ${({ position }) => `${position.x}px`};
-    top: ${({ position }) => `${position.y}px`};
+    top: ${({ position }) => `${position.y - 20}px`};
     box-sizing: border-box;
 `;
 
@@ -38,6 +38,7 @@ const DragHandleBar = styled.div`
     justify-content: space-between;
     padding: 0 8px;
     cursor: move;
+    userSelect: none,
     position: absolute;
     top: 0;
     left: 0;
@@ -50,6 +51,7 @@ const ResizeHandle = styled.div`
     position: absolute;
     background-color: rgba(0,0,0,0.5);
     color: white;
+    userSelect: none,
     cursor: nwse-resize;
     padding: 15px 5px 5px 15px;
     bottom: -22px;
@@ -123,22 +125,28 @@ const DynamicComponentWrapper = ({
     }, [componentCode, componentName]);
 
     useEffect(() => {
-        // Measure the rendered component dimensions if not provided initially
-        if (!initialDimensions && componentRef.current) {
-            const { offsetWidth, offsetHeight } = componentRef.current;
-            const measuredDimensions = {
-                width: offsetWidth || 200,
-                height: offsetHeight || 100,
-            };
-
-            setDimensions(measuredDimensions);
-
-            if (onResize) {
-                onResize(measuredDimensions); // Persist dimensions to parent
-            }
+        if (initialDimensions) {
+          setDimensions(initialDimensions);
+          setInitialComponentDimensions(initialDimensions);
         }
-    }, [initialDimensions, onResize]);
-
+      }, [initialDimensions]);
+    
+      useEffect(() => {
+        if (!initialDimensions && componentRef.current) {
+          const { offsetWidth, offsetHeight } = componentRef.current;
+          const measuredDimensions = {
+            width: offsetWidth || 200,
+            height: offsetHeight || 100,
+          };
+    
+          setDimensions(measuredDimensions);
+    
+          if (onResize) {
+            onResize(measuredDimensions);
+          }
+        }
+      }, [componentCode, onResize]);
+      
     const handleMouseDown = (event) => {
         if (hideDragging) return;
         event.preventDefault();
@@ -155,40 +163,56 @@ const DynamicComponentWrapper = ({
             if (dragging) {
                 const deltaX = event.clientX - initialMousePosition.x;
                 const deltaY = event.clientY - initialMousePosition.y;
+                const newX = initialComponentPosition.x + deltaX;
+                const newY = initialComponentPosition.y + deltaY;
+              
+                const maxX = dropAreaRect.width - dimensions.width;
+                const maxY = dropAreaRect.height - dimensions.height;
+              
+                const constrainedX = Math.max(0, Math.min(newX, maxX));
+                const constrainedY = Math.max(0, Math.min(newY, maxY));
+              
                 const newPosition = {
-                    x: Math.max(
-                        0,
-                        Math.min(initialComponentPosition.x + deltaX, dropAreaRect.width - dimensions.width)
-                    ),
-                    y: Math.max(
-                        0,
-                        Math.min(
-                            initialComponentPosition.y + deltaY,
-                            dropAreaRect.height - dimensions.height - 22
-                        )
-                    ),
+                  x: constrainedX,
+                  y: constrainedY,
                 };
+              
                 onPositionChange(newPosition);
-            }
-            if (resizing) {
+              }              
+              if (resizing) {
                 const deltaX = event.clientX - initialMousePosition.x;
                 const deltaY = event.clientY - initialMousePosition.y;
+              
+                // Calculate new dimensions
+                const newWidth = Math.max(50, initialComponentDimensions.width + deltaX);
+                const newHeight = Math.max(50, initialComponentDimensions.height + deltaY);
+              
+                // Calculate maximum allowed dimensions based on the component's position
+                const maxWidth = dropAreaRect.width - position.x;
+                const maxHeight = dropAreaRect.height - position.y;
+              
+                // Constrain dimensions to not exceed the drop area boundaries
+                const constrainedWidth = Math.min(newWidth, maxWidth);
+                const constrainedHeight = Math.min(newHeight, maxHeight);
+              
                 const newDimensions = {
-                    width: Math.max(50, initialComponentDimensions.width + deltaX),
-                    height: Math.max(50, initialComponentDimensions.height + deltaY),
+                  width: constrainedWidth,
+                  height: constrainedHeight,
                 };
-
+              
                 setDimensions(newDimensions);
+              
                 if (onResize) {
-                    onResize(newDimensions); // Update dimensions in the parent state
+                  onResize(newDimensions); // Update dimensions in the parent state
                 }
-
+              
                 // Update component code if necessary
                 const updatedCode = updateComponentCode(componentCode, newDimensions.width, newDimensions.height);
                 if (onComponentCodeUpdate) {
-                    onComponentCodeUpdate(updatedCode);
+                  onComponentCodeUpdate(updatedCode);
                 }
-            }
+              }
+              
         },
         [
             dragging,
