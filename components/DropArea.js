@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 
-const DropArea = ({ onDropComponent, selectedPage, children }) => {
+const DropArea = ({ onDropAreaReady, onDropComponent, selectedPage, children }) => {
     const [{ isOver }, dropRef] = useDrop(
         () => ({
             accept: 'COMPONENT',
@@ -20,6 +20,11 @@ const DropArea = ({ onDropComponent, selectedPage, children }) => {
         }),
         [selectedPage, onDropComponent] // Add dependencies here
     );
+    useEffect(() => {
+        if (onDropAreaReady) {
+          onDropAreaReady();
+        }
+      }, [onDropAreaReady]);
 
     return (
         <div

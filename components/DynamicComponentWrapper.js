@@ -147,38 +147,40 @@ const DynamicComponentWrapper = ({
         }
       }, [componentCode, onResize]);
       
-    const handleMouseDown = (event) => {
+      const handleMouseDown = (event) => {
         if (hideDragging) return;
         event.preventDefault();
         setDragging(true);
-        setInitialMousePosition({ x: event.clientX, y: event.clientY });
+        setInitialMousePosition({ x: event.pageX, y: event.pageY });
         setInitialComponentPosition(position);
     };
-
+    
     const handleMouseMove = useCallback(
         (event) => {
             const dropArea = document.getElementById('drop-area');
             const dropAreaRect = dropArea.getBoundingClientRect();
 
             if (dragging) {
-                const deltaX = event.clientX - initialMousePosition.x;
-                const deltaY = event.clientY - initialMousePosition.y;
+                const deltaX = event.pageX - initialMousePosition.x;
+                const deltaY = event.pageY - initialMousePosition.y;
                 const newX = initialComponentPosition.x + deltaX;
                 const newY = initialComponentPosition.y + deltaY;
-              
+    
+                // Calculate maximum allowed positions
                 const maxX = dropAreaRect.width - dimensions.width;
                 const maxY = dropAreaRect.height - dimensions.height;
-              
+    
+                // Constrain positions within drop area boundaries
                 const constrainedX = Math.max(0, Math.min(newX, maxX));
                 const constrainedY = Math.max(0, Math.min(newY, maxY));
-              
+    
                 const newPosition = {
-                  x: constrainedX,
-                  y: constrainedY,
+                    x: constrainedX,
+                    y: constrainedY,
                 };
-              
+    
                 onPositionChange(newPosition);
-              }              
+            }         
               if (resizing) {
                 const deltaX = event.clientX - initialMousePosition.x;
                 const deltaY = event.clientY - initialMousePosition.y;
@@ -235,12 +237,14 @@ const DynamicComponentWrapper = ({
         if (dragging || resizing) {
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
-            return () => {
-                document.removeEventListener('mousemove', handleMouseMove);
-                document.removeEventListener('mouseup', handleMouseUp);
-            };
         }
+    
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
     }, [dragging, resizing, handleMouseMove, handleMouseUp]);
+    
 
     const handleResizeMouseDown = (event) => {
         event.preventDefault();

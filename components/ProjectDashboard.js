@@ -47,13 +47,14 @@ export default function ProjectDashboard({ projectData }) {
     const [gridHeight, setGridHeight] = useState(600);
     const [layout, setLayout] = useState([]);
     const [hideDragging, setHideDragging] = useState(false);
+    const [dropAreaReady, setDropAreaReady] = useState(false);
     const [projectComponents, setProjectComponents] = useState({
         pages: projectData.pages.map((page) => ({
             ...page,
             components: [], // Ensure no components are pre-rendered
         })),
     });
-    const [droppedComponents, setDroppedComponents] = useState([]); // Track dropped components
+    const [droppedComponents, setDroppedComponents] = useState({});
     const [showPagesDropdown, setShowPagesDropdown] = useState(false);
     const [selectedTab, setSelectedTab] = useState('pages');
     const [selectedPage, setSelectedPage] = useState(null);
@@ -112,11 +113,14 @@ export default function ProjectDashboard({ projectData }) {
 
     const handleDropComponent = useCallback(
         (componentName, offset) => {
+            const dropAreaElement = document.getElementById('drop-area');
+            if (!dropAreaElement) {
+              console.error('Drop area not found');
+              return;
+            }
           console.log('Dropping component:', componentName, 'on page:', selectedPage);
       
-          const dropAreaRect = document
-            .getElementById('drop-area')
-            .getBoundingClientRect();
+          const dropAreaRect = dropAreaElement.getBoundingClientRect();
           const x = offset.x - dropAreaRect.left;
           const y = offset.y - dropAreaRect.top;
       
@@ -128,15 +132,17 @@ export default function ProjectDashboard({ projectData }) {
           if (componentData) {
             const newComponent = {
               ...componentData,
-              id: uuidv4(), // Assign a unique ID
+              id: uuidv4(),
               position: { x, y },
               dimensions: { width: 500, height: 300 },
-              page: selectedPage,
             };
       
             console.log('New component added:', newComponent);
       
-            setDroppedComponents((prev) => [...prev, newComponent]);
+            setDroppedComponents((prev) => ({
+                ...prev,
+                [selectedPage]: [...(prev[selectedPage] || []), newComponent],
+              }));              
           } else {
             console.error('Component data not found for:', componentName);
           }
@@ -174,10 +180,10 @@ export default function ProjectDashboard({ projectData }) {
                         return { ...page, components: generatedComponents };
                     });
     
-                    setProjectComponents({
-                        ...projectData,
+                    setProjectComponents((prev) => ({
+                        ...prev,
                         pages: generatedPages,
-                    });
+                      }));
                 }
     
                 if (projectData.apis && projectData.apis.length > 0) {
@@ -205,10 +211,10 @@ export default function ProjectDashboard({ projectData }) {
                 setLoading(false);
             }
         };
-    
+        
         generateComponents();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [dropAreaReady]);
     
 
     const updateComponentStatus = (componentName, status) => {
@@ -434,29 +440,31 @@ export default function ProjectDashboard({ projectData }) {
     };
 
     const handlePageSelect = (pageName) => {
+        // Save current page's data
         if (selectedPage) {
-            setPageLayouts((prevLayouts) => ({
-                ...prevLayouts,
-                [selectedPage]: {
-                    layout,
-                    gridHeight,
-                },
-            }));
+          setPageLayouts((prevLayouts) => ({
+            ...prevLayouts,
+            [selectedPage]: {
+              layout,
+              gridHeight,
+            },
+          }));
         }
-    
+      
+        // Save current page's components
+        setDroppedComponents((prev) => ({
+          ...prev,
+          [selectedPage]: [...(prev[selectedPage] || [])],
+        }));
+      
+        // Load new page's layout
         const savedPageData = pageLayouts[pageName];
-        if (savedPageData) {
-            setLayout(savedPageData.layout || []);
-            setGridHeight(savedPageData.gridHeight || 600);
-        } else {
-            setLayout([]);
-            setGridHeight(600);
-        }
-    
+        setLayout(savedPageData?.layout || []);
+        setGridHeight(savedPageData?.gridHeight || 600);
+      
         setSelectedPage(pageName);
-        setSelectedTab('pages');
-        setShowPagesDropdown(false);
-    };
+      };
+      
     
     const handleViewModeChange = (mode) => {
         setViewMode(mode);
@@ -525,7 +533,16 @@ export default function ProjectDashboard({ projectData }) {
             }
         }
     }, [selectedPage, pageLayouts, layout, gridHeight, projectComponents.pages]);
-    
+
+    useEffect(() => {
+        if (selectedPage && !droppedComponents[selectedPage]) {
+            const page = projectComponents.pages.find((p) => p.name === selectedPage);
+            setDroppedComponents((prev) => ({
+                ...prev,
+                [selectedPage]: page.initialComponents || [],
+            }));
+        }
+    }, [selectedPage, projectComponents.pages, droppedComponents]);    
     
     const handleResizeStart = (event) => {
         setIsResizing(true);
@@ -545,9 +562,14 @@ export default function ProjectDashboard({ projectData }) {
         setIsResizing(false);
     };
 
-    const handleRemoveComponentInstance = (id) => {
-        setDroppedComponents((prev) => prev.filter((comp) => comp.id !== id));
+    const handleRemoveComponentInstance = (componentId) => {
+        setDroppedComponents((prev) => {
+          const pageComponents = prev[selectedPage] || [];
+          const updatedComponents = pageComponents.filter((comp) => comp.id !== componentId);
+          return { ...prev, [selectedPage]: updatedComponents };
+        });
       };
+      
       
 
     useEffect(() => {
@@ -561,6 +583,16 @@ export default function ProjectDashboard({ projectData }) {
             document.removeEventListener('mouseup', handleResizeStop);
         };
     }, [isResizing, handleResizeMove, handleResizeStop]);
+
+    const updateComponent = (componentId, updater) => {
+        setDroppedComponents((prev) => {
+          const pageComponents = prev[selectedPage] || [];
+          const updatedComponents = pageComponents.map((comp) =>
+            comp.id === componentId ? updater(comp) : comp
+          );
+          return { ...prev, [selectedPage]: updatedComponents };
+        });
+      };
 
     const handleLayoutChange = (newLayout) => {
         setLayout(newLayout);
@@ -578,69 +610,46 @@ export default function ProjectDashboard({ projectData }) {
         }
     };
     
-    const handleComponentCodeUpdate = (updatedCode, index) => {
-        setDroppedComponents((prev) =>
-            prev.map((comp, idx) =>
-                idx === index ? { ...comp, code: updatedCode } : comp
-            )
-        );
-    };
-    
-    const handleResize = (id, newDimensions) => {
-        setDroppedComponents((prev) =>
-          prev.map((comp) =>
-            comp.id === id
-              ? {
-                  ...comp,
-                  dimensions: newDimensions,
-                }
-              : comp
-          )
-        );
-      };      
+    const handleResize = (componentId, newDimensions) => {
+        updateComponent(componentId, (comp) => ({
+          ...comp,
+          dimensions: newDimensions,
+        }));
+      };
+      
+      const handleComponentCodeUpdate = (componentId, updatedCode) => {
+        updateComponent(componentId, (comp) => ({
+          ...comp,
+          code: updatedCode,
+        }));
+      };
+       
 
     const renderComponentsInDropArea = () => {
-        const activePageComponents = droppedComponents.filter(
-          (comp) => comp.page === selectedPage
-        );
-      
-        return activePageComponents.map((component) => {
+        const activePageComponents = droppedComponents[selectedPage] || [];
+
+        return activePageComponents.map((component) => {      
           try {
             return (
-              <DynamicComponentWrapper
-                key={component.id}
-                componentId={component.id}
-                position={component.position || { x: 0, y: 0 }}
-                dimensions={component.dimensions}
-                componentName={component.name}
-                hideDragging={hideDragging}
-                componentCode={component.code}
-                onComponentCodeUpdate={(updatedCode) => handleComponentCodeUpdate(updatedCode, component.id)}
-                onResize={(newDimensions) => handleResize(component.id, newDimensions)}
-                onRemove={() => handleRemoveComponentInstance(component.id)}
+<DynamicComponentWrapper
+  key={component.id}
+  componentId={component.id}
+  position={component.position}
+  dimensions={component.dimensions}
+  componentName={component.name}
+  hideDragging={hideDragging}
+  componentCode={component.code}
+  onComponentCodeUpdate={(updatedCode) =>
+    handleComponentCodeUpdate(component.id, updatedCode)
+  }
+  onResize={(newDimensions) => handleResize(component.id, newDimensions)}
+  onRemove={() => handleRemoveComponentInstance(component.id)}
                 onPositionChange={(newPosition) => {
-                  const dropArea = document.getElementById('drop-area');
-                  if (dropArea) {
-                    const dropAreaRect = dropArea.getBoundingClientRect();
-                    const constrainedPosition = {
-                      x: Math.max(
-                        0,
-                        Math.min(newPosition.x, dropAreaRect.width - 100)
-                      ),
-                      y: Math.max(
-                        0,
-                        Math.min(newPosition.y, dropAreaRect.height - 50)
-                      ),
-                    };
-                    setDroppedComponents((prev) =>
-                      prev.map((comp) =>
-                        comp.id === component.id
-                          ? { ...comp, position: constrainedPosition }
-                          : comp
-                      )
-                    );
-                  }
-                }}
+                    updateComponent(component.id, (comp) => ({
+                      ...comp,
+                      position: newPosition,
+                    }));
+                  }}
               />
             );
           } catch (error) {
@@ -669,12 +678,12 @@ export default function ProjectDashboard({ projectData }) {
                         {/* Sidebar */}
                         <Sidebar
                             availableComponents={availableComponents}
-                            droppedComponents={droppedComponents.map((comp) => comp.name)}
-                        />
+                            droppedComponents={(droppedComponents[selectedPage] || []).map((comp) => comp.name)}
+                            />
 
                         {/* Drop Area */}
                         <div style={{ flex: 1, position: 'relative' }}>
-                        <DropArea onDropComponent={handleDropComponent} selectedPage={selectedPage}>
+                        <DropArea onDropAreaReady={() => setDropAreaReady(true)} onDropComponent={handleDropComponent} selectedPage={selectedPage}>
                 <div
                                     id="drop-area"
                                     style={{
