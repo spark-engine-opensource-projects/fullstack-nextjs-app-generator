@@ -1,6 +1,11 @@
-// utils/api.js
 import axios from 'axios';
 import sparkConfig from '../spark.config.json';
+
+
+// Check if running locally or on Vercel
+const isLocalEnvironment = typeof window !== 'undefined'
+    ? window.location.hostname === 'localhost'
+    : process.env.VERCEL_ENV !== 'production';
 
 // Utility function to evaluate and replace expressions within strings
 const evaluateExpressions = (str, context) => {
@@ -15,7 +20,6 @@ const safeParse = (data, context) => {
     try {
         console.log('Raw Data:', data);
 
-        // Evaluate expressions and replace single quotes with double quotes, but ignore escaped quotes
         let fixedData = evaluateExpressions(data, context)
             .replace(/\\'/g, '\\u0027') // Temporarily replace escaped apostrophes with a Unicode character
             .replace(/'/g, '"') // Replace non-escaped apostrophes with double quotes
@@ -30,20 +34,49 @@ const safeParse = (data, context) => {
     }
 };
 
-export const callSpark = async (projectId, prompt) => {
+// Direct Spark API call for local environment
+const callSparkDirectly = async (projectId, prompt) => {
     const payload = {
-        projectId,
-        prompt
+        api_key: process.env.SPARK_API_KEY,
+        project_id: projectId,
+        prompt: prompt,
     };
 
     try {
-        const response = await axios.post('/api/callSpark', payload);
+        const response = await axios.post('https://sparkengine.ai/api/engine/completion', payload, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
 
-        console.log(response.data)
+        // Process and sanitize the response
+        const data = response.data.data.map((item) => {
+            if (item.output && typeof item.output === 'string') {
+                // Remove backticks if they exist at the start or end
+                item.output = item.output.replace(/^```|```$/g, '').trim();
+            }
+            return item;
+        });
 
+        return data;
+    } catch (error) {
+        console.error('Error calling Spark API directly:', error.message);
+        throw error;
+    }
+};
+
+// Function to decide between local direct call or serverless function
+export const callSpark = async (projectId, prompt) => {
+    if (isLocalEnvironment) {
+        return await callSparkDirectly(projectId, prompt);
+    }
+
+    // Use the serverless function in production
+    try {
+        const response = await axios.post('/api/callSpark', { projectId, prompt });
         return response.data;
     } catch (error) {
-        console.error('Error calling Spark API:', error.message);
+        console.error('Error calling Spark API through serverless function:', error.message);
         throw error;
     }
 };

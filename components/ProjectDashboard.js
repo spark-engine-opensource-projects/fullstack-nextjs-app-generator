@@ -50,6 +50,7 @@ export default function ProjectDashboard({ projectData }) {
     const [projectComponents, setProjectComponents] = useState({
         pages: projectData.pages.map((page) => ({
             ...page,
+            instances: [],
             components: [], // Ensure no components are pre-rendered
         })),
     });
@@ -87,24 +88,48 @@ export default function ProjectDashboard({ projectData }) {
     const [sqlCode, setSqlCode] = useState(''); // New state for SQL code
 
     const initialFolderStructure = useGenerateFolderStructure(projectData, projectComponents, serverlessApis, sqlCode); // Initial folder structure
-      
-      const [availableComponents, setAvailableComponents] = useState([]);
-      const [dropAreaHeight, setDropAreaHeight] = useState(800); // Default height
-      const [isResizing, setIsResizing] = useState(false);
-      const [initialMouseY, setInitialMouseY] = useState(0);
-      const [initialHeight, setInitialHeight] = useState(800); // Match initial dropAreaHeight
-  
-      useEffect(() => {
+
+    const [availableComponents, setAvailableComponents] = useState([]);
+    const [dropAreaHeight, setDropAreaHeight] = useState(800); // Default height
+    const [isResizing, setIsResizing] = useState(false);
+    const [initialMouseY, setInitialMouseY] = useState(0);
+    const [initialHeight, setInitialHeight] = useState(800); // Match initial dropAreaHeight
+
+    useEffect(() => {
         const components = projectComponents.pages.flatMap((page) =>
-          page.components.map((component) => component.name)
+            page.components.map((component) => component.name)
         );
         setAvailableComponents(components);
-      }, [projectComponents]);
+    }, [projectComponents]);
 
-      
+
     useEffect(() => {
-        setFolderStructure(initialFolderStructure);
-    }, [initialFolderStructure]);
+        const enhancedProjectData = {
+            ...projectData,
+            pages: projectData.pages.map((page) => {
+                const pageInstances = droppedComponents.filter(
+                    (comp) => comp.page === page.name
+                );
+                return {
+                    ...page,
+                    components: pageInstances.map((instance) => ({
+                        name: instance.name,
+                        code: instance.instanceCode || instance.code,
+                        position: instance.position,
+                        dimensions: instance.dimensions,
+                    })),
+                };
+            }),
+        };
+
+        const newStructure = useGenerateFolderStructure(
+            enhancedProjectData,
+            projectComponents,
+            serverlessApis,
+            sqlCode
+        );
+        setFolderStructure(newStructure);
+    }, [projectData, projectComponents, droppedComponents, serverlessApis, sqlCode]);
 
     const handleShowFolderStructure = () => {
         setShowFolderStructure(prev => !prev);
@@ -112,110 +137,175 @@ export default function ProjectDashboard({ projectData }) {
 
     const handleDropComponent = useCallback(
         (componentName, offset) => {
-          console.log('Dropping component:', componentName, 'on page:', selectedPage);
-      
-          const dropAreaRect = document
-            .getElementById('drop-area')
-            .getBoundingClientRect();
-          const x = offset.x - dropAreaRect.left;
-          const y = offset.y - dropAreaRect.top;
-      
-          // Find component data
-          const componentData = projectComponents.pages
-            .flatMap((page) => page.components)
-            .find((comp) => comp.name === componentName);
-      
-          if (componentData) {
-            const newComponent = {
-              ...componentData,
-              id: uuidv4(), // Assign a unique ID
-              position: { x, y },
-              dimensions: { width: 500, height: 300 },
-              page: selectedPage,
-            };
-      
-            console.log('New component added:', newComponent);
-      
-            setDroppedComponents((prev) => [...prev, newComponent]);
-          } else {
-            console.error('Component data not found for:', componentName);
-          }
+            const dropAreaRect = document
+                .getElementById('drop-area')
+                .getBoundingClientRect();
+            const x = offset.x - dropAreaRect.left;
+            const y = offset.y - dropAreaRect.top;
+
+            // Find component data
+            const componentData = projectComponents.pages
+                .flatMap((page) => page.components)
+                .find((comp) => comp.name === componentName);
+
+            if (componentData) {
+                const newInstance = {
+                    ...componentData,
+                    id: uuidv4(),
+                    position: { x, y },
+                    dimensions: { width: 500, height: 300 },
+                    page: selectedPage,
+                    instanceCode: componentData.code, // Track instance-specific code
+                };
+
+                // Update dropped components
+                setDroppedComponents((prev) => [...prev, newInstance]);
+
+                // Update project components with instance data
+                setProjectComponents((prev) => ({
+                    ...prev,
+                    pages: prev.pages.map((page) =>
+                        page.name === selectedPage
+                            ? {
+                                ...page,
+                                instances: [...page.instances, newInstance],
+                            }
+                            : page
+                    ),
+                }));
+            }
         },
         [selectedPage, projectComponents]
-      );
-      
-    
+    );
+
+
     useEffect(() => {
         const generateComponents = async () => {
             try {
-                if (projectData.pages && projectData.pages.length > 0) {
-                    if (selectedPage === '' || selectedPage === null) {
-                        setSelectedPage(projectData.pages[0].name);
-                    }
-    
-                    const uniqueComponents = new Set();
-                    projectData.pages.forEach(page => {
-                        page.components.forEach(component => {
-                            uniqueComponents.add(component);
-                        });
+                setLoading(true);
+                // First, handle page selection
+                if (selectedPage === '' || selectedPage === null) {
+                    setSelectedPage(projectData.pages[0].name);
+                }
+
+                // Generate components first
+                const uniqueComponents = new Set();
+                projectData.pages.forEach(page => {
+                    page.components.forEach(component => {
+                        uniqueComponents.add(component);
                     });
-    
-                    const componentMap = {};
-                    const componentPromises = Array.from(uniqueComponents).map(async (component) => {
+                });
+
+                const componentMap = {};
+                const componentResults = await Promise.allSettled(
+                    Array.from(uniqueComponents).map(async (component) => {
                         updateComponentStatus(component, 'generating');
-                        const generatedComponent = await generateComponent(component, JSON.stringify(projectData.styling));
-                        componentMap[component] = generatedComponent;
-                    });
-    
-                    await Promise.all(componentPromises);
-    
-                    const generatedPages = projectData.pages.map(page => {
-                        const generatedComponents = page.components.map(component => componentMap[component]);
-                        return { ...page, components: generatedComponents };
-                    });
-    
-                    setProjectComponents({
+                        try {
+                            const generatedComponent = await generateComponent(
+                                component,
+                                "", // Remove page purpose
+                                JSON.stringify(projectData.styling)
+                            );
+                            componentMap[component] = generatedComponent;
+                            updateComponentStatus(component, 'success');
+                        } catch (error) {
+                            console.error(`Failed to generate component ${component}:`, error);
+                            updateComponentStatus(component, 'failed');
+                        }
+                    })
+                );
+
+                // Only proceed if at least some components generated successfully
+                if (Object.keys(componentMap).length > 0) {
+                    setProjectComponents(prevState => ({
                         ...projectData,
-                        pages: generatedPages,
-                    });
-                }
-    
-                if (projectData.apis && projectData.apis.length > 0) {
-                    const generatedApis = await Promise.all(
-                        projectData.apis.map(async (api, index) => {
-                            updateApiStatus(api.name, 'generating');
-                            const prompt = constructApiPrompt(api, projectData.databaseSchema);
-                            const apiCode = await retryApiGeneration(prompt, api.name);
-                            return { ...api, code: apiCode };
-                        })
-                    );
-                    setServerlessApis(generatedApis);
-                }
-    
-                if (projectData.databaseSchema) {
-                    setSqlStatus('generating');
-                    const generatedSQL = await generateSQLDatabaseQuery(JSON.stringify(projectData.databaseSchema));
-                    setSqlCode(generatedSQL);
-                    setSqlStatus('success');
+                        pages: projectData.pages.map(page => ({
+                            ...page,
+                            components: page.components.map(component => componentMap[component] || null)
+                        }))
+                    }));
+
+                    // Then handle APIs
+                    if (projectData.apis?.length > 0) {
+                        const apiResults = await Promise.allSettled(
+                            projectData.apis.map(async (api) => {
+                                updateApiStatus(api.name, 'generating');
+                                const prompt = constructApiPrompt(api, projectData.databaseSchema);
+                                return retryApiGeneration(prompt, api.name);
+                            })
+                        );
+
+                        const successfulApis = apiResults
+                            .map((result, index) => ({
+                                ...projectData.apis[index],
+                                code: result.status === 'fulfilled' ? result.value : null
+                            }))
+                            .filter(api => api.code !== null);
+
+                        setServerlessApis(successfulApis);
+                    }
+
+                    // Finally, handle SQL
+                    if (projectData.databaseSchema) {
+                        setSqlStatus('generating');
+                        const generatedSQL = await generateSQLDatabaseQuery(
+                            JSON.stringify(projectData.databaseSchema)
+                        );
+                        setSqlCode(generatedSQL);
+                        setSqlStatus('success');
+                    }
+                } else {
+                    throw new Error('No components were generated successfully');
                 }
             } catch (error) {
-                console.error('Error generating components:', error);
-                setSqlStatus('failed');
+                console.error('Error in component generation:', error);
+                // Don't set loading to false here - let the finally block handle it
             } finally {
                 setLoading(false);
             }
         };
-    
-        generateComponents();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
+        let mounted = true;
+
+        const initializeGeneration = async () => {
+            try {
+                if (mounted) {
+                    await generateComponents();
+                }
+            } catch (error) {
+                console.error('Fatal error during generation:', error);
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        initializeGeneration();
+
+        return () => {
+            mounted = false;
+        };
     }, []);
-    
+
 
     const updateComponentStatus = (componentName, status) => {
-        setComponentStatus(prevStatus => ({
-            ...prevStatus,
-            [componentName]: status
-        }));
+        setComponentStatus(prevStatus => {
+            const newStatus = {
+                ...prevStatus,
+                [componentName]: status
+            };
+
+            // Check if all components are either success or failed
+            const isComplete = Object.values(newStatus).every(
+                status => status === 'success' || status === 'failed'
+            );
+
+            if (isComplete && status === 'failed') {
+                setLoading(false);
+            }
+
+            return newStatus;
+        });
     };
 
     const updateApiStatus = (apiName, status) => {
@@ -241,36 +331,47 @@ export default function ProjectDashboard({ projectData }) {
         throw new Error('Failed to generate API after multiple attempts');
     };
 
-    const generateComponent = async (componentName, pagePurpose, stylingGuide) => {
+    const generateComponent = async (componentName, stylingGuide) => {
         let retryCount = 0;
         const maxRetries = 3;
 
         while (retryCount < maxRetries) {
             try {
-                const prompt = `Generate a React component named ${componentName} for a page with the following purpose: ${pagePurpose}. Follow this styling guide: ${stylingGuide}`;
+                // Simplified prompt for more reliable generation
+                const prompt = `Generate a React component named ${componentName}. Follow this styling guide: ${stylingGuide}. The component should be a functional component that uses styled-components.`;
                 const result = await generateDynamicallyRenderingReactComponent(prompt);
 
                 const code = typeof result === 'string' ? result : result?.code;
 
-                if (typeof code !== 'string' || !code.trim()) {
-                    throw new Error(`Invalid code generated for component ${componentName}`);
+                if (!code || typeof code !== 'string') {
+                    throw new Error('Invalid code generated');
                 }
 
-                new Function('React', 'styled', `return ${code}`)
+                // Validate the code structure
+                if (!code.includes('export default') || !code.includes('return')) {
+                    throw new Error('Generated code missing required React component structure');
+                }
 
-                updateComponentStatus(componentName, 'success');
-
-                return { name: componentName, code };
+                // Test component compilation
+                try {
+                    new Function('React', 'styled', `${code}`);
+                    updateComponentStatus(componentName, 'success');
+                    return { name: componentName, code };
+                } catch (compileError) {
+                    throw new Error(`Component compilation failed: ${compileError.message}`);
+                }
             } catch (error) {
-                console.error(`Error generating component '${componentName}' on attempt ${retryCount + 1}:`, error);
-                retryCount += 1;
+                console.error(`Generation attempt ${retryCount + 1} failed for ${componentName}:`, error);
+                retryCount++;
                 updateComponentStatus(componentName, `retrying (${retryCount})`);
             }
         }
 
         updateComponentStatus(componentName, 'failed');
-
-        return { name: componentName, code: `() => <div>Error generating ${componentName} after ${maxRetries} attempts</div>` };
+        return {
+            name: componentName,
+            code: `const ${componentName} = () => <div>Failed to generate component</div>; export default ${componentName};`
+        };
     };
 
     const handleApiCodeChange = (index, newCode) => {
@@ -443,7 +544,7 @@ export default function ProjectDashboard({ projectData }) {
                 },
             }));
         }
-    
+
         const savedPageData = pageLayouts[pageName];
         if (savedPageData) {
             setLayout(savedPageData.layout || []);
@@ -452,12 +553,12 @@ export default function ProjectDashboard({ projectData }) {
             setLayout([]);
             setGridHeight(600);
         }
-    
+
         setSelectedPage(pageName);
         setSelectedTab('pages');
         setShowPagesDropdown(false);
     };
-    
+
     const handleViewModeChange = (mode) => {
         setViewMode(mode);
     };
@@ -476,27 +577,27 @@ export default function ProjectDashboard({ projectData }) {
 
     const DynamicComponent = React.memo(({ component }) => {
         const { code, name } = component;
-      
+
         try {
-          // Dynamically create the React component
-          const GeneratedComponent = new Function('React', 'styled', `return ${code}`)(
-            React,
-            styled
-          );
-      
-          // Render the dynamically created component
-          return <GeneratedComponent />;
+            // Dynamically create the React component
+            const GeneratedComponent = new Function('React', 'styled', `return ${code}`)(
+                React,
+                styled
+            );
+
+            // Render the dynamically created component
+            return <GeneratedComponent />;
         } catch (error) {
-          console.error(`Error rendering dynamic component "${name}":`, error);
-          return (
-            <div style={{ color: 'red' }}>
-              Error rendering component: {name}
-            </div>
-          );
+            console.error(`Error rendering dynamic component "${name}":`, error);
+            return (
+                <div style={{ color: 'red' }}>
+                    Error rendering component: {name}
+                </div>
+            );
         }
-      });
-      
-      useEffect(() => {
+    });
+
+    useEffect(() => {
         if (selectedPage) {
             const savedPageData = pageLayouts[selectedPage];
             if (savedPageData) {
@@ -518,15 +619,15 @@ export default function ProjectDashboard({ projectData }) {
                         w: 2,
                         h: 2,
                     })) || [];
-    
+
                 if (JSON.stringify(layout) !== JSON.stringify(defaultLayout)) {
                     setLayout(defaultLayout);
                 }
             }
         }
     }, [selectedPage, pageLayouts, layout, gridHeight, projectComponents.pages]);
-    
-    
+
+
     const handleResizeStart = (event) => {
         setIsResizing(true);
         setInitialMouseY(event.clientY);
@@ -547,8 +648,8 @@ export default function ProjectDashboard({ projectData }) {
 
     const handleRemoveComponentInstance = (id) => {
         setDroppedComponents((prev) => prev.filter((comp) => comp.id !== id));
-      };
-      
+    };
+
 
     useEffect(() => {
         if (isResizing) {
@@ -566,7 +667,7 @@ export default function ProjectDashboard({ projectData }) {
         setLayout(newLayout);
         const maxHeight = Math.max(...newLayout.map((item) => item.y + item.h)) * 100;
         setGridHeight(maxHeight + 100);
-    
+
         if (selectedPage) {
             setPageLayouts((prevLayouts) => ({
                 ...prevLayouts,
@@ -577,83 +678,99 @@ export default function ProjectDashboard({ projectData }) {
             }));
         }
     };
-    
-    const handleComponentCodeUpdate = (updatedCode, index) => {
+
+    const handleComponentCodeUpdate = (updatedCode, instanceId) => {
+        // Update dropped components
         setDroppedComponents((prev) =>
-            prev.map((comp, idx) =>
-                idx === index ? { ...comp, code: updatedCode } : comp
+            prev.map((comp) =>
+                comp.id === instanceId
+                    ? { ...comp, instanceCode: updatedCode }
+                    : comp
+            )
+        );
+
+        // Update project components
+        setProjectComponents((prev) => ({
+            ...prev,
+            pages: prev.pages.map((page) => ({
+                ...page,
+                instances: page.instances.map((instance) =>
+                    instance.id === instanceId
+                        ? { ...instance, instanceCode: updatedCode }
+                        : instance
+                ),
+            })),
+        }));
+    };
+
+    const handleResize = (id, newDimensions) => {
+        setDroppedComponents((prev) =>
+            prev.map((comp) =>
+                comp.id === id
+                    ? {
+                        ...comp,
+                        dimensions: newDimensions,
+                    }
+                    : comp
             )
         );
     };
-    
-    const handleResize = (id, newDimensions) => {
-        setDroppedComponents((prev) =>
-          prev.map((comp) =>
-            comp.id === id
-              ? {
-                  ...comp,
-                  dimensions: newDimensions,
-                }
-              : comp
-          )
-        );
-      };      
 
     const renderComponentsInDropArea = () => {
         const activePageComponents = droppedComponents.filter(
-          (comp) => comp.page === selectedPage
+            (comp) => comp.page === selectedPage
         );
-      
+
         return activePageComponents.map((component) => {
-          try {
-            return (
-              <DynamicComponentWrapper
-                key={component.id}
-                componentId={component.id}
-                position={component.position || { x: 0, y: 0 }}
-                dimensions={component.dimensions}
-                componentName={component.name}
-                hideDragging={hideDragging}
-                componentCode={component.code}
-                onComponentCodeUpdate={(updatedCode) => handleComponentCodeUpdate(updatedCode, component.id)}
-                onResize={(newDimensions) => handleResize(component.id, newDimensions)}
-                onRemove={() => handleRemoveComponentInstance(component.id)}
-                onPositionChange={(newPosition) => {
-                  const dropArea = document.getElementById('drop-area');
-                  if (dropArea) {
-                    const dropAreaRect = dropArea.getBoundingClientRect();
-                    const constrainedPosition = {
-                      x: Math.max(
-                        0,
-                        Math.min(newPosition.x, dropAreaRect.width - 100)
-                      ),
-                      y: Math.max(
-                        0,
-                        Math.min(newPosition.y, dropAreaRect.height - 50)
-                      ),
-                    };
-                    setDroppedComponents((prev) =>
-                      prev.map((comp) =>
-                        comp.id === component.id
-                          ? { ...comp, position: constrainedPosition }
-                          : comp
-                      )
-                    );
-                  }
-                }}
-              />
-            );
-          } catch (error) {
-            console.error(`Error rendering component "${component.name}":`, error);
-            return (
-              <div key={component.id} style={{ color: 'red' }}>
-                Error rendering component: {component.name}
-              </div>
-            );
-          }
+            try {
+                return (
+                    <DynamicComponentWrapper
+                        key={component.id}
+                        componentId={component.id}
+                        position={component.position || { x: 0, y: 0 }}
+                        dimensions={component.dimensions}
+                        componentName={component.name}
+                        hideDragging={hideDragging}
+                        componentCode={component.code}
+                        onComponentCodeUpdate={(updatedCode) => handleComponentCodeUpdate(updatedCode, component.id)}
+                        onResize={(newDimensions) => handleResize(component.id, newDimensions)}
+                        onRemove={() => handleRemoveComponentInstance(component.id)}
+                        onPositionChange={(newPosition) => {
+                            const dropArea = document.getElementById('drop-area');
+                            if (dropArea) {
+                                const dropAreaRect = dropArea.getBoundingClientRect();
+                                const constrainedPosition = {
+                                    x: Math.max(
+                                        0,
+                                        Math.min(newPosition.x, dropAreaRect.width - 100)
+                                    ),
+                                    y: Math.max(
+                                        0,
+                                        Math.min(newPosition.y, dropAreaRect.height - 50)
+                                    ),
+                                };
+                                setDroppedComponents((prev) =>
+                                    prev.map((comp) =>
+                                        comp.id === component.id
+                                            ? { ...comp, position: constrainedPosition }
+                                            : comp
+                                    )
+                                );
+                            }
+                        }}
+                    />
+                );
+            } catch (error) {
+                console.error(`Error rendering component "${component.name}":`, error);
+                return (
+                    <div key={component.id} style={{ color: 'red' }}>
+                        Error rendering component: {component.name}
+                    </div>
+                );
+            }
         });
-      };
-    
+    };
+
 
     const renderComponents = () => {
         if (!projectComponents?.pages || !selectedPage) return null;
@@ -674,8 +791,8 @@ export default function ProjectDashboard({ projectData }) {
 
                         {/* Drop Area */}
                         <div style={{ flex: 1, position: 'relative' }}>
-                        <DropArea onDropComponent={handleDropComponent} selectedPage={selectedPage}>
-                <div
+                            <DropArea onDropComponent={handleDropComponent} selectedPage={selectedPage}>
+                                <div
                                     id="drop-area"
                                     style={{
                                         width: '100%',
@@ -703,7 +820,7 @@ export default function ProjectDashboard({ projectData }) {
                                             color: 'white'
                                         }}
                                         onMouseDown={handleResizeStart}
-                                    ><IconFoldDown size={18}/></div>
+                                    ><IconFoldDown size={18} /></div>
                                 </div>
                             </DropArea>
                         </div>
@@ -734,7 +851,7 @@ export default function ProjectDashboard({ projectData }) {
             );
         }
     };
-    
+
     const toggleColorPicker = () => {
         setColorPickerVisible(!colorPickerVisible);
     };
@@ -813,13 +930,12 @@ export default function ProjectDashboard({ projectData }) {
                 </div>
             ) : (
                 <>
-            <div className="tabs flex justify-center space-x-2 mb-6 relative">
-            <div className="relative">
+                    <div className="tabs flex justify-center space-x-2 mb-6 relative">
+                        <div className="relative">
                             <button
                                 onClick={() => setShowPagesDropdown((prev) => !prev)}
-                                className={`tab py-1.5 px-4 text-sm font-semibold rounded-full transition-colors duration-200 ${
-                                    selectedTab === 'pages' ? 'bg-black text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                }`}
+                                className={`tab py-1.5 px-4 text-sm font-semibold rounded-full transition-colors duration-200 ${selectedTab === 'pages' ? 'bg-black text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    }`}
                             >
                                 Pages
                             </button>
@@ -829,9 +945,8 @@ export default function ProjectDashboard({ projectData }) {
                                         <button
                                             key={index}
                                             onClick={() => handlePageSelect(page.name)}
-                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                                                selectedPage === page.name ? 'bg-gray-200' : ''
-                                            }`}
+                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${selectedPage === page.name ? 'bg-gray-200' : ''
+                                                }`}
                                         >
                                             {page.name}
                                         </button>
@@ -840,76 +955,74 @@ export default function ProjectDashboard({ projectData }) {
                             )}
                         </div>
 
-                <button
-                    onClick={() => handleTabChange('apis')}
-                    className={`tab py-1.5 px-4 text-sm font-semibold rounded-full transition-colors duration-200 ${
-                        selectedTab === 'apis' ? 'bg-black text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                >
-                    APIs
-                </button>
-                <button
-                    onClick={() => handleTabChange('tables')}
-                    className={`tab py-1.5 px-4 text-sm font-semibold rounded-full transition-colors duration-200 ${
-                        selectedTab === 'tables' ? 'bg-black text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                >
-                    Tables
-                </button>
-                <button
-                    onClick={handleShowFolderStructure}
-                    className="py-1.5 px-4 text-sm font-semibold bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors duration-200"
-                >
-                    Toggle Folder Structure
-                </button>
-                <button
-                    onClick={handleRegenerateHeader}
-                    className="py-1.5 px-4 text-sm font-semibold bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors duration-200"
-                >
-                    Regenerate Header
-                </button>
-                <button
-                    onClick={() => setShowRegenerateAllDialog(true)}
-                    className="py-1.5 px-4 text-sm font-semibold bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors duration-200"
-                >
-                    Regenerate All Components
-                </button>
-            </div>
+                        <button
+                            onClick={() => handleTabChange('apis')}
+                            className={`tab py-1.5 px-4 text-sm font-semibold rounded-full transition-colors duration-200 ${selectedTab === 'apis' ? 'bg-black text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                        >
+                            APIs
+                        </button>
+                        <button
+                            onClick={() => handleTabChange('tables')}
+                            className={`tab py-1.5 px-4 text-sm font-semibold rounded-full transition-colors duration-200 ${selectedTab === 'tables' ? 'bg-black text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                        >
+                            Tables
+                        </button>
+                        <button
+                            onClick={handleShowFolderStructure}
+                            className="py-1.5 px-4 text-sm font-semibold bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors duration-200"
+                        >
+                            Toggle Folder Structure
+                        </button>
+                        <button
+                            onClick={handleRegenerateHeader}
+                            className="py-1.5 px-4 text-sm font-semibold bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors duration-200"
+                        >
+                            Regenerate Header
+                        </button>
+                        <button
+                            onClick={() => setShowRegenerateAllDialog(true)}
+                            className="py-1.5 px-4 text-sm font-semibold bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors duration-200"
+                        >
+                            Regenerate All Components
+                        </button>
+                    </div>
 
-            {/* Render selected tab content */}
-            {selectedTab === 'pages' && (
-                <div>
-                    <div className="page-tabs flex justify-center space-x-4 mb-4">
-                        {renderPageTabs()}
-                    </div>
-                    <div className="view-mode-buttons justify-center flex space-x-2 mb-4">
-                    <button 
-    onClick={() => setViewMode(viewMode === 'code' ? 'rendered' : 'code')}
-    title={viewMode === 'code' ? 'Switch to Rendered View' : 'Switch to Code View'}
->
-    {viewMode === 'code' ? <IconZoomCodeFilled size={24} /> : <IconZoomCode size={24} />}
-</button>
-                            <button
-                                onClick={() => setHideDragging((prev) => !prev)}
-                            >
-                                {hideDragging ? <IconAdjustmentsOff/> : <IconAdjustments/>}
-                            </button>
-                            <button onClick={toggleColorPicker} style={{ margin: '10px' }}>
-                {colorPickerVisible ? <IconColorPicker/> : <IconColorPickerOff/>}
-            </button>
-            {colorPickerVisible && (
-                <div style={{ position: 'absolute', top:20, zIndex: 1000 }}>
-                    <ChromePicker color={backgroundColor} onChange={handleColorChange} />
-                </div>
-            )}                            
+                    {/* Render selected tab content */}
+                    {selectedTab === 'pages' && (
+                        <div>
+                            <div className="page-tabs flex justify-center space-x-4 mb-4">
+                                {renderPageTabs()}
+                            </div>
+                            <div className="view-mode-buttons justify-center flex space-x-2 mb-4">
+                                <button
+                                    onClick={() => setViewMode(viewMode === 'code' ? 'rendered' : 'code')}
+                                    title={viewMode === 'code' ? 'Switch to Rendered View' : 'Switch to Code View'}
+                                >
+                                    {viewMode === 'code' ? <IconZoomCodeFilled size={24} /> : <IconZoomCode size={24} />}
+                                </button>
+                                <button
+                                    onClick={() => setHideDragging((prev) => !prev)}
+                                >
+                                    {hideDragging ? <IconAdjustmentsOff /> : <IconAdjustments />}
+                                </button>
+                                <button onClick={toggleColorPicker} style={{ margin: '10px' }}>
+                                    {colorPickerVisible ? <IconColorPicker /> : <IconColorPickerOff />}
+                                </button>
+                                {colorPickerVisible && (
+                                    <div style={{ position: 'absolute', top: 20, zIndex: 1000 }}>
+                                        <ChromePicker color={backgroundColor} onChange={handleColorChange} />
+                                    </div>
+                                )}
+                            </div>
+                            {!showFolderStructure && (
+                                <div className="bg-white p-4 rounded shadow">
+                                    {renderComponents()}
+                                </div>
+                            )}
                         </div>
-                        {!showFolderStructure && (
-                    <div className="bg-white p-4 rounded shadow">
-                             {renderComponents()}
-                    </div>
                     )}
-                </div>
-            )}
 
                     {selectedTab === 'apis' && (
                         <div className="bg-white p-4 rounded shadow">
@@ -928,9 +1041,9 @@ export default function ProjectDashboard({ projectData }) {
                                                     <strong className="text-green-600">API {index + 1}: {api.name}</strong> ({api.method} {api.endpoint})
                                                     <span
                                                         className={`ml-2 w-3 h-3 rounded-full ${apiStatus[api.name] === 'success' ? 'bg-green-500' :
-                                                                apiStatus[api.name] === 'failed' ? 'bg-red-500' :
-                                                                    apiStatus[api.name] === 'generating' ? 'bg-yellow-500' :
-                                                                        'bg-gray-500'
+                                                            apiStatus[api.name] === 'failed' ? 'bg-red-500' :
+                                                                apiStatus[api.name] === 'generating' ? 'bg-yellow-500' :
+                                                                    'bg-gray-500'
                                                             }`}
                                                         title={apiStatus[api.name] || 'Unknown'}
                                                     />
@@ -1013,30 +1126,30 @@ export default function ProjectDashboard({ projectData }) {
                         </div>
                     )}
 
-{showFolderStructure && (
-    <div
-        style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '70vh',
-            padding:'20px',
-            backgroundColor:'#fff',
-            borderRadius:'7px',
-            marginTop:'5px'
-        }}
-    >
-        {folderStructure ? (
-            <ProjectFolderStructure
-                structure={folderStructure}
-                projectData={projectData}
-                sqlCode={sqlCode}
-            />
-        ) : (
-            <div>Unable to generate folder structure. Please check the project data.</div>
-        )}
-    </div>
-)}
+                    {showFolderStructure && (
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                height: '70vh',
+                                padding: '20px',
+                                backgroundColor: '#fff',
+                                borderRadius: '7px',
+                                marginTop: '5px'
+                            }}
+                        >
+                            {folderStructure ? (
+                                <ProjectFolderStructure
+                                    structure={folderStructure}
+                                    projectData={projectData}
+                                    sqlCode={sqlCode}
+                                />
+                            ) : (
+                                <div>Unable to generate folder structure. Please check the project data.</div>
+                            )}
+                        </div>
+                    )}
 
 
                     {showPromptDialog && (
