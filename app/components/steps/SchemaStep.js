@@ -1,165 +1,332 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+
+const DATA_TYPES = [
+    'VARCHAR', 'TEXT', 'INTEGER', 'FLOAT', 'DECIMAL', 'BOOLEAN', 
+    'DATE', 'TIMESTAMP', 'JSON', 'UUID'
+];
 
 export default function SchemaStep({ schema, onUpdate, onModifySchema, onRegenerate }) {
     const [editableSchema, setEditableSchema] = useState(schema);
+    const [errors, setErrors] = useState({});
+    const [activeTable, setActiveTable] = useState(null);
 
-    const handleTableNameChange = (index, value) => {
+    const validateField = useCallback((value, type) => {
+        switch (type) {
+            case 'tableName':
+                return /^[a-zA-Z][a-zA-Z0-9_]*$/.test(value) 
+                    ? null 
+                    : 'Table name must start with a letter and contain only letters, numbers, and underscores';
+            case 'columnName':
+                return /^[a-zA-Z][a-zA-Z0-9_]*$/.test(value)
+                    ? null
+                    : 'Column name must start with a letter and contain only letters, numbers, and underscores';
+            default:
+                return null;
+        }
+    }, []);
+
+    const handleTableNameChange = useCallback((index, value) => {
+        const error = validateField(value, 'tableName');
+        setErrors(prev => ({ ...prev, [`table-${index}`]: error }));
+        
+        if (!error) {
+            const updatedSchema = [...editableSchema];
+            updatedSchema[index].tableName = value;
+            setEditableSchema(updatedSchema);
+        }
+    }, [editableSchema, validateField]);
+
+    const handleColumnChange = useCallback((tableIndex, columnIndex, field, value) => {
         const updatedSchema = [...editableSchema];
-        updatedSchema[index].tableName = value;
-        setEditableSchema(updatedSchema);
-    };
+        const error = field === 'name' ? validateField(value, 'columnName') : null;
+        
+        setErrors(prev => ({
+            ...prev,
+            [`column-${tableIndex}-${columnIndex}`]: error
+        }));
 
-    const handleColumnChange = (tableIndex, columnIndex, field, value) => {
+        if (!error) {
+            updatedSchema[tableIndex].columns[columnIndex][field] = value;
+            setEditableSchema(updatedSchema);
+        }
+    }, [editableSchema, validateField]);
+
+    const handleAddColumn = useCallback((tableIndex) => {
         const updatedSchema = [...editableSchema];
-        updatedSchema[tableIndex].columns[columnIndex][field] = value;
+        updatedSchema[tableIndex].columns.push({
+            name: '',
+            type: 'VARCHAR',
+            length: null,
+            nullable: true,
+            primaryKey: false,
+            foreignKey: null
+        });
         setEditableSchema(updatedSchema);
-    };
+    }, [editableSchema]);
 
-    const handleAddColumn = (tableIndex) => {
+    const handleAddForeignKey = useCallback((tableIndex, columnIndex) => {
         const updatedSchema = [...editableSchema];
-        updatedSchema[tableIndex].columns.push({ name: '', type: '' });
+        updatedSchema[tableIndex].columns[columnIndex].foreignKey = {
+            table: '',
+            column: '',
+            onDelete: 'CASCADE'
+        };
         setEditableSchema(updatedSchema);
-    };
+    }, [editableSchema]);
 
-    const handleDeleteColumn = (tableIndex, columnIndex) => {
+    const handleRemoveForeignKey = useCallback((tableIndex, columnIndex) => {
         const updatedSchema = [...editableSchema];
-        updatedSchema[tableIndex].columns.splice(columnIndex, 1);
+        updatedSchema[tableIndex].columns[columnIndex].foreignKey = null;
         setEditableSchema(updatedSchema);
-    };
+    }, [editableSchema]);
 
-    const handleAddTable = () => {
-        const updatedSchema = [
-            ...editableSchema,
-            { tableName: '', columns: [{ name: '', type: '' }] },
-        ];
-        setEditableSchema(updatedSchema);
-    };
+    const handleAddTable = useCallback(() => {
+        setEditableSchema(prev => [
+            ...prev,
+            {
+                tableName: '',
+                columns: [{
+                    name: 'id',
+                    type: 'INTEGER',
+                    primaryKey: true,
+                    nullable: false
+                }]
+            }
+        ]);
+    }, []);
 
-    const handleDeleteTable = (tableIndex) => {
-        const updatedSchema = [...editableSchema];
-        updatedSchema.splice(tableIndex, 1);
-        setEditableSchema(updatedSchema);
-    };
-
-    const handleSaveChanges = () => {
-        onUpdate(editableSchema);
-    };
+    const canSave = useMemo(() => {
+        return Object.values(errors).every(error => !error) &&
+               editableSchema.every(table => 
+                   table.tableName && 
+                   table.columns.every(column => column.name && column.type)
+               );
+    }, [errors, editableSchema]);
 
     return (
         <div className="schema-step p-6 bg-gray-50 rounded-lg shadow">
-            <h2 className="text-2xl font-bold mb-6">Database Schema</h2>
-
-            {editableSchema.map((table, tableIndex) => (
-                <div
-                    key={tableIndex}
-                    className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-6"
-                >
-                    <div className="flex justify-between items-center mb-4">
-                        <input
-                            type="text"
-                            value={table.tableName}
-                            onChange={(e) => handleTableNameChange(tableIndex, e.target.value)}
-                            placeholder="Table Name"
-                            className="text-xl font-bold text-gray-800 border p-2 rounded w-2/3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <button
-                            onClick={() => handleDeleteTable(tableIndex)}
-                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition duration-200"
-                        >
-                            Delete Table
-                        </button>
-                    </div>
-                    <table className="w-full text-left border-collapse mb-4">
-                        <thead>
-                            <tr>
-                                <th className="border-b-2 border-gray-200 py-2">Column Name</th>
-                                <th className="border-b-2 border-gray-200 py-2">Type</th>
-                                <th className="border-b-2 border-gray-200 py-2">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {table.columns.map((column, columnIndex) => (
-                                <tr key={columnIndex} className="hover:bg-gray-100">
-                                    <td className="py-2 px-4 border-b border-gray-200">
-                                        <input
-                                            type="text"
-                                            value={column.name}
-                                            onChange={(e) =>
-                                                handleColumnChange(
-                                                    tableIndex,
-                                                    columnIndex,
-                                                    'name',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="Column Name"
-                                            className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </td>
-                                    <td className="py-2 px-4 border-b border-gray-200">
-                                        <input
-                                            type="text"
-                                            value={column.type}
-                                            onChange={(e) =>
-                                                handleColumnChange(
-                                                    tableIndex,
-                                                    columnIndex,
-                                                    'type',
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="Column Type"
-                                            className="border p-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </td>
-                                    <td className="py-2 px-4 border-b border-gray-200">
-                                        <button
-                                            onClick={() =>
-                                                handleDeleteColumn(tableIndex, columnIndex)
-                                            }
-                                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition duration-200"
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">Database Schema</h2>
+                <div className="space-x-4">
                     <button
-                        onClick={() => handleAddColumn(tableIndex)}
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition duration-200"
+                        onClick={onRegenerate}
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
                     >
-                        Add Column
+                        Regenerate Schema
+                    </button>
+                    <button
+                        onClick={onModifySchema}
+                        className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition"
+                    >
+                        Modify with AI
                     </button>
                 </div>
-            ))}
+            </div>
 
-            <button
-                onClick={handleAddTable}
-                className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition duration-200 mb-6"
-            >
-                Add Table
-            </button>
+            <div className="space-y-6">
+                {editableSchema.map((table, tableIndex) => (
+                    <div
+                        key={tableIndex}
+                        className={`bg-white p-6 rounded-lg shadow-md border-2 transition-colors ${
+                            activeTable === tableIndex ? 'border-blue-500' : 'border-transparent'
+                        }`}
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex-1 mr-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Table Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={table.tableName}
+                                    onChange={(e) => handleTableNameChange(tableIndex, e.target.value)}
+                                    className={`border p-2 rounded w-full ${
+                                        errors[`table-${tableIndex}`] ? 'border-red-500' : 'border-gray-300'
+                                    }`}
+                                    placeholder="Table Name"
+                                />
+                                {errors[`table-${tableIndex}`] && (
+                                    <p className="text-red-500 text-sm mt-1">{errors[`table-${tableIndex}`]}</p>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const updatedSchema = [...editableSchema];
+                                    updatedSchema.splice(tableIndex, 1);
+                                    setEditableSchema(updatedSchema);
+                                }}
+                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+                            >
+                                Delete Table
+                            </button>
+                        </div>
 
-            <div className="flex space-x-4">
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr>
+                                        <th className="text-left p-2">Name</th>
+                                        <th className="text-left p-2">Type</th>
+                                        <th className="text-left p-2">Constraints</th>
+                                        <th className="text-left p-2">Foreign Key</th>
+                                        <th className="text-left p-2">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {table.columns.map((column, columnIndex) => (
+                                        <tr key={columnIndex} className="border-t">
+                                            <td className="p-2">
+                                                <input
+                                                    type="text"
+                                                    value={column.name}
+                                                    onChange={(e) => handleColumnChange(
+                                                        tableIndex,
+                                                        columnIndex,
+                                                        'name',
+                                                        e.target.value
+                                                    )}
+                                                    className={`border p-2 rounded w-full ${
+                                                        errors[`column-${tableIndex}-${columnIndex}`]
+                                                            ? 'border-red-500'
+                                                            : 'border-gray-300'
+                                                    }`}
+                                                    placeholder="Column Name"
+                                                />
+                                                {errors[`column-${tableIndex}-${columnIndex}`] && (
+                                                    <p className="text-red-500 text-sm mt-1">
+                                                        {errors[`column-${tableIndex}-${columnIndex}`]}
+                                                    </p>
+                                                )}
+                                            </td>
+                                            <td className="p-2">
+                                                <select
+                                                    value={column.type}
+                                                    onChange={(e) => handleColumnChange(
+                                                        tableIndex,
+                                                        columnIndex,
+                                                        'type',
+                                                        e.target.value
+                                                    )}
+                                                    className="border border-gray-300 p-2 rounded w-full"
+                                                >
+                                                    {DATA_TYPES.map(type => (
+                                                        <option key={type} value={type}>
+                                                            {type}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            <td className="p-2">
+                                                <div className="flex items-center space-x-4">
+                                                    <label className="flex items-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={column.primaryKey}
+                                                            onChange={(e) => handleColumnChange(
+                                                                tableIndex,
+                                                                columnIndex,
+                                                                'primaryKey',
+                                                                e.target.checked
+                                                            )}
+                                                            className="mr-2"
+                                                        />
+                                                        PK
+                                                    </label>
+                                                    <label className="flex items-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!column.nullable}
+                                                            onChange={(e) => handleColumnChange(
+                                                                tableIndex,
+                                                                columnIndex,
+                                                                'nullable',
+                                                                !e.target.checked
+                                                            )}
+                                                            className="mr-2"
+                                                        />
+                                                        Required
+                                                    </label>
+                                                </div>
+                                            </td>
+                                            <td className="p-2">
+                                                {column.foreignKey ? (
+                                                    <div className="flex items-center space-x-2">
+                                                        <select
+                                                            value={column.foreignKey.table}
+                                                            onChange={(e) => {
+                                                                const updatedSchema = [...editableSchema];
+                                                                updatedSchema[tableIndex].columns[columnIndex]
+                                                                    .foreignKey.table = e.target.value;
+                                                                setEditableSchema(updatedSchema);
+                                                            }}
+                                                            className="border border-gray-300 p-2 rounded"
+                                                        >
+                                                            <option value="">Select Table</option>
+                                                            {editableSchema.map((t, i) => (
+                                                                <option key={i} value={t.tableName}>
+                                                                    {t.tableName}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                        <button
+                                                            onClick={() => handleRemoveForeignKey(tableIndex, columnIndex)}
+                                                            className="text-red-500 hover:text-red-600"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleAddForeignKey(tableIndex, columnIndex)}
+                                                        className="text-blue-500 hover:text-blue-600"
+                                                    >
+                                                        + Add FK
+                                                    </button>
+                                                )}
+                                            </td>
+                                            <td className="p-2">
+                                                <button
+                                                    onClick={() => {
+                                                        const updatedSchema = [...editableSchema];
+                                                        updatedSchema[tableIndex].columns.splice(columnIndex, 1);
+                                                        setEditableSchema(updatedSchema);
+                                                    }}
+                                                    className="text-red-500 hover:text-red-600"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <button
+                            onClick={() => handleAddColumn(tableIndex)}
+                            className="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
+                        >
+                            Add Column
+                        </button>
+                    </div>
+                ))}
+            </div>
+
+            <div className="mt-6 space-x-4">
                 <button
-                    onClick={handleSaveChanges}
-                    className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition duration-200"
+                    onClick={handleAddTable}
+                    className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition"
+                >
+                    Add Table
+                </button>
+                <button
+                    onClick={() => onUpdate(editableSchema)}
+                    disabled={!canSave}
+                    className={`bg-blue-500 text-white px-6 py-2 rounded transition ${
+                        canSave ? 'hover:bg-blue-600' : 'opacity-50 cursor-not-allowed'
+                    }`}
                 >
                     Save Changes
-                </button>
-                <button
-                    onClick={onModifySchema}
-                    className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition duration-200"
-                >
-                    Modify Schema with AI
-                </button>
-                <button
-                    onClick={onRegenerate}
-                    className="bg-yellow-500 text-white px-6 py-2 rounded hover:bg-yellow-600 transition duration-200"
-                >
-                    Regenerate Schema
                 </button>
             </div>
         </div>
