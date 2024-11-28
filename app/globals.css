@@ -1,0 +1,66 @@
+/* styles/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.multi-step-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.multi-step-form div {
+    margin-bottom: 20px;
+}
+
+.multi-step-form label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.multi-step-form input,
+.multi-step-form textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.btn {
+    border: none;
+    padding: 10px 20px;
+    background-color: #0070f3;
+    color: white;
+    cursor: pointer;
+    margin-right: 10px;
+    border-radius: 4px;
+}
+
+.btn:hover {
+    background-color: #005bb5;
+}
+
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.dashboard div {
+    margin-bottom: 20px;
+}
+
+.dashboard label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.dashboard input,
+.dashboard textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
