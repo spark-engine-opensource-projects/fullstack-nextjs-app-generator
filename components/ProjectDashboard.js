@@ -86,8 +86,6 @@ export default function ProjectDashboard({ projectData }) {
     const [sqlStatus, setSqlStatus] = useState('idle'); // State for tracking SQL generation status
 
     const [sqlCode, setSqlCode] = useState(''); // New state for SQL code
-
-    const initialFolderStructure = useGenerateFolderStructure(projectData, projectComponents, serverlessApis, sqlCode); // Initial folder structure
       
       const [availableComponents, setAvailableComponents] = useState([]);
       const [dropAreaHeight, setDropAreaHeight] = useState(800); // Default height
@@ -95,6 +93,8 @@ export default function ProjectDashboard({ projectData }) {
       const [initialMouseY, setInitialMouseY] = useState(0);
       const [initialHeight, setInitialHeight] = useState(800); // Match initial dropAreaHeight
   
+      const initialFolderStructure = useGenerateFolderStructure(projectData, projectComponents, serverlessApis, droppedComponents, dropAreaHeight); // Initial folder structure
+
       useEffect(() => {
         const components = projectComponents.pages.flatMap((page) =>
           page.components.map((component) => component.name)
@@ -425,10 +425,32 @@ export default function ProjectDashboard({ projectData }) {
         }
     };
 
-    const updateFolderStructure = (updatedApis) => {
-        const newFolderStructure = useGenerateFolderStructure(projectData, projectComponents, updatedApis, sqlCode);
-        setFolderStructure(newFolderStructure);
-    };
+    const updateFolderStructure = async (updatedApis) => {
+        try {
+          const jsconfig = {
+            compilerOptions: {
+              baseUrl: '.',
+              paths: {
+                '@components/*': ['components/*'],
+                '@pages/*': ['pages/*'],
+              },
+            },
+          };
+      
+          const newFolderStructure = await generateFolderStructureJson(
+            projectData,
+            projectComponents,
+            jsconfig,
+            updatedApis,
+            droppedComponents,
+            dropAreaHeight
+          );
+          setFolderStructure(newFolderStructure);
+        } catch (error) {
+          console.error('Error updating folder structure:', error);
+          setFolderStructure(null);
+        }
+      };
 
     const handleTabChange = (tab) => {
         setSelectedTab(tab);
@@ -1040,6 +1062,8 @@ export default function ProjectDashboard({ projectData }) {
                 structure={folderStructure}
                 projectData={projectData}
                 sqlCode={sqlCode}
+                droppedComponents={droppedComponents}
+                dropAreaHeight={dropAreaHeight}
             />
         ) : (
             <div>Unable to generate folder structure. Please check the project data.</div>

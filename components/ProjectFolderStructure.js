@@ -27,7 +27,7 @@ const extractEnvVariables = (code) => {
     return Array.from(matches);
 };
 
-const ProjectFolderStructure = ({ structure, projectData, sqlCode }) => {
+const ProjectFolderStructure = ({ structure, projectData, sqlCode, droppedComponents, dropAreaHeight }) => {
     const [openNodes, setOpenNodes] = useState({});
     const [visibleCode, setVisibleCode] = useState({});
     const [deploying, setDeploying] = useState(false);
@@ -78,26 +78,82 @@ const ProjectFolderStructure = ({ structure, projectData, sqlCode }) => {
 
     const regeneratePageContent = async (node, path) => {
         try {
-            let newContent;
-            const jsconfigFile = structure.children.find((child) => child.name === 'jsconfig.json');
-            const jsconfig = jsconfigFile ? JSON.parse(jsconfigFile.content) : {};
-
-            if (path.includes('/api')) {
-                const prompt = `Generate a Vercel serverless API for ${node.name}. Here is the jsconfig.json file for reference: ${JSON.stringify(jsconfig)}.`;
-                newContent = await generateServerlessApi(prompt);
+          let newContent;
+          const jsconfigFile = structure.children.find((child) => child.name === 'jsconfig.json');
+          const jsconfig = jsconfigFile ? JSON.parse(jsconfigFile.content) : {};
+      
+          if (path.includes('/api')) {
+            // Handle API regeneration (if applicable)
+          } else if (path.includes('/pages')) {
+            const pageName = node.originalName || node.name;
+            const pageComponents = droppedComponents[pageName] || [];
+      
+            if (pageComponents.length > 0) {
+              // Generate import statements
+              const componentImports = pageComponents
+                .map(
+                  (component) =>
+                    `import ${component.name} from '../components/${component.name}';`
+                )
+                .join('\n');
+      
+              // Generate JSX code for components
+              const componentJSX = pageComponents
+                .map((component) => {
+                  const { position, dimensions } = component;
+                  const { x, y } = position;
+                  const { width, height } = dimensions;
+                  return `
+                  <div style={{
+                    position: 'absolute',
+                    left: ${x}px,
+                    top: ${y}px,
+                    width: ${width}px,
+                    height: ${height}px
+                  }}>
+                    <${component.name} />
+                  </div>
+                `;
+                })
+                .join('\n');
+      
+              // Build the page content
+              newContent = `
+                import React from 'react';
+                ${componentImports}
+      
+                export default function ${node.name}() {
+                  return (
+                    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                      ${componentJSX}
+                    </div>
+                  );
+                }
+              `;
             } else {
-                const pageComponents = node.components?.join(', ') || 'none';
-                const prompt = `Generate a Next.js page for ${node.name}. Include the following components: ${pageComponents}. Here is the jsconfig.json file for reference: ${JSON.stringify(jsconfig)}.`;
-                newContent = await generateNormalReactPage(prompt);
+              newContent = `
+                import React from 'react';
+      
+                export default function ${node.name}() {
+                  return (
+                    <div>
+                      <p>This page has no components.</p>
+                    </div>
+                  );
+                }
+              `;
             }
-
-            node.content = newContent;
-            toggleCodeVisibility(`${path}/${node.name}`);
+      
+            // Update the node's content
+            node.children.find(child => child.name === 'index.js').content = newContent;
+          }
+      
+          toggleCodeVisibility(`${path}/${node.name}`);
         } catch (error) {
-            console.error(`Error regenerating content for ${node.name}:`, error);
-            node.content = '// Error regenerating content';
+          console.error(`Error regenerating content for ${node.name}:`, error);
+          node.content = '// Error regenerating content';
         }
-    };
+      };      
 
     const allChildrenHaveContent = (children) => {
         return children.every((child) => {
